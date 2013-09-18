@@ -1,13 +1,19 @@
 netapp-cdot-nagios
 ==================
 
-About
------
+	About
+	-----
 
-Scripts for monitoring NetApp cDOT-Systems via NetApp Perl-API
+	Scripts for monitoring NetApp cDOT-Systems via NetApp Perl-API
 
 
-Contact / Author
-----------------
+	Examples
+	--------
 
-Alexander Krogloth <git at krogloth.de>
+	For some examples have a look at my wiki: <http://wiki.krogloth.de/index.php/NetApp_C-Mode/Monitoring>
+
+
+	Contact / Author
+	----------------
+
+	Alexander Krogloth <git at krogloth.de>
