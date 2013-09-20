@@ -38,9 +38,7 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-
 my $output = $s->invoke("storage-disk-get-iter");
-
 if ($output->results_errno != 0) {
 	my $r = $output->results_reason();
 	print "Unknown - $r\n";
@@ -50,8 +48,7 @@ if ($output->results_errno != 0) {
 my $heads = $output->child_get("attributes-list");
 my @result = $heads->children_get();
 
-my $message;
-
+my @failed_disks;
 foreach my $disk (@result){
 
 	my $paths = $disk->child_get("disk-paths");
@@ -60,14 +57,14 @@ foreach my $disk (@result){
 
 	if ($path_count ne "4"){
 		my @disk_name = split(/:/,$disk_name);
-		$message .= " $disk_name[1]";
+		push @failed_disks, $disk_name[1];
 
 	}
 
 }
 
-if($message){
-	print "CRITICAL: disk(s) not multipath: $message\n";
+if (@failed_disks) {
+	print 'CRITICAL: disk(s) not multipath: ' . join( ', ', @failed_disks ) . "\n";
 	exit 2;
 } else {
 	print "All disks multipath\n";

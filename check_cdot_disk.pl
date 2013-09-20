@@ -46,35 +46,28 @@ if ($output->results_errno != 0) {
 }
 
 my $disks = $output->child_get("attributes-list");
-my $disk_count = 0;
 my @result = $disks->children_get();
 
-my $failed_disk = 0;
-my $disk_list;
-my $diskstate;
-
-foreach my $disk (@result){
-	
+my $disk_count = 0;
+my @disk_list;
+foreach my $disk (@result) {
 	$disk_count++;
 
 	my $owner = $disk->child_get("disk-ownership-info");
-
-	$diskstate = $owner->child_get_string("is-failed");
-	my $diskname = $disk->child_get_string("disk-name");
-
-	if($diskstate eq "true"){
-		$failed_disk++;
-	        $disk_list .=  $diskname;
-	}
-	
+    my $diskstate = $owner->child_get_string('is-failed');
+    if ( $diskstate eq 'true' ) {
+        push @disk_list, $disk->child_get_string('disk-name');
+    }
 }
 
-if($failed_disk > 0){
-        print "$failed_disk failed disk(s): $disk_list\n";
-        exit 2;
-} else {
-        print "All $disk_count disks OK\n";
-        exit 0;
+if (@disk_list) {
+    print @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . "\n";
+    exit 2;
 }
+else {
+    print "All $disk_count disks OK\n";
+    exit 0;
+}
+
 
 

@@ -31,10 +31,6 @@ Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 
-my $now = time;
-my $old = 0;
-my $old_snapshots;
-
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
@@ -44,31 +40,26 @@ my $snap_output = $s->invoke("snapshot-get-iter");
 my $snapshots = $snap_output->child_get("attributes-list");
 my @snap_result = $snapshots->children_get();
 
+my $now = time;
+my @old_snapshots;
 foreach my $snap (@snap_result){
 
-	my $snap_name = $snap->child_get_string("name");
 	my $snap_time = $snap->child_get_string("access-time");
-
-	my $vol_name = $snap->child_get_string("volume");
-
         my $age = $now - $snap_time;
-
         if($age >= 7776000){
-		$old++;
-                if($old_snapshots){
-                	$old_snapshots .= ", $vol_name/$snap_name";
-		} else {
-			$old_snapshots = "$vol_name/$snap_name";
-		}
+		my $snap_name = $snap->child_get_string("name");
+		my $vol_name  = $snap->child_get_string("volume");
+                push @old_snapshots, "$vol_name/$snap_name";
 	}
-
 }
 
-if($old ne "0"){
-	print "$old snapshot(s) older than 90 days:\n";
-	print "$old_snapshots\n";
-	exit 1;
-} else {
-	print "No snapshots older than 90 days\n";
-	exit 0;
+if (@old_snapshots) {
+    print @old_snapshots . " snapshot(s) older than 90 days:\n";
+    print "@old_snapshots\n";
+    exit 1;
 }
+else {
+    print "No snapshots are older than 90 days\n";
+    exit 0;
+}
+

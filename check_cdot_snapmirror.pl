@@ -38,7 +38,6 @@ $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("snapmirror-get-iter");
-
 if ($output->results_errno != 0) {
 	my $r = $output->results_reason();
 	print "UNKNOWN - $r\n";
@@ -47,32 +46,28 @@ if ($output->results_errno != 0) {
 
 my $snapmirror_failed = 0;
 my $snapmirror_ok = 0;
-my $failed_names;
 
 my $snapmirrors = $output->child_get("attributes-list");
 my @result = $snapmirrors->children_get();
 
+my @failed_names;
 foreach my $snap (@result){
 
 	my $healthy = $snap->child_get_string("is-healthy");
-
 	if($healthy eq "false"){
-
-		my $name = $snap->child_get_string("destination-volume");
-
-	        if($failed_names){
-	                $failed_names .= ", " . $name;
-	        } else {
-	                $failed_names .= $name;
-	        }
-
+	        push @failed_names, $snap->child_get_string("destination-volume");
 		$snapmirror_failed++;
 	}
-	$snapmirror_ok++;
+	else {
+		$snapmirror_ok++;
+	}
 }
 
-if($snapmirror_failed > 0){
-        print "CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok\n$failed_names\n";
+if ($snapmirror_failed) {
+	print <<_;
+CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok
+${ \join( ', ', @failed_names ) }
+_
         exit 2;
 } else {
 	print "OK: $snapmirror_ok snapmirror(s) ok\n";
