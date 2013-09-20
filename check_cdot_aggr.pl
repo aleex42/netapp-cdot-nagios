@@ -1,23 +1,40 @@
 #!/usr/bin/perl
 
-# check_cdot_aggr
-# usage: ./check_cdot_aggr hostname username password percent_warning percent_critical
-# Alexander Krogloth <git at krogloth.de>
+# --
+# check_cdot_aggr - Check Aggregate real Space Usage
+# Copyright (C) 2013 noris network AG, http://www.noris.net/
+# --
+use strict;
+use warnings;
 
 use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use strict;
-use warnings;
+use Getopt::Long;
 
-my $percent_warn = $ARGV[3];
-my $percent_crit = $ARGV[4];
+GetOptions(
+    'hostname=s' => \my $Hostname,
+    'username=s' => \my $Username,
+    'password=s' => \my $Password,
+    'warning=i'  => \my $Warning,
+    'critical=i' => \my $Critical,
+    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+) or Error("$0: Error in command line arguments\n");
 
-my $s = NaServer->new ($ARGV[0], 1, 3);
+sub Error {
+    print "$0: " . shift . "\n";
+    exit 2;
+}
+Error('Option --hostname needed!') unless $Hostname;
+Error('Option --username needed!') unless $Username;
+Error('Option --password needed!') unless $Password;
+Error('Option --warning needed!')  unless $Warning;
+Error('Option --critical needed!') unless $Critical;
 
+my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
-$s->set_admin_user($ARGV[1], $ARGV[2]);
+$s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("aggr-get-iter");
 
@@ -43,13 +60,9 @@ foreach my $aggr (@result){
 		my $space = $aggr->child_get("aggr-space-attributes");
 		my $percent = $space->child_get_int("percent-used-capacity");
 
-		if($percent >= $percent_crit){
-			$critical++;
-		}
+        $critical++ if $percent >= $Critical;
+        $warning++  if $percent >= $Warning;
 
-    if($percent >= $percent_warn){
-			$warning++;
-    }
 
     if($message){
 			$message .= ", " . $aggr_name . " (" . $percent . "%)";

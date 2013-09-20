@@ -1,21 +1,47 @@
 #!/usr/bin/perl
 
-# check_cdot_global
-# usage: ./check_cdot_global hostname username password $PLUGIN (where PLUGIN is 'powersupply', 'fans', 'nvram', 'temp' or 'health')
-# Alexander Krogloth <git at krogloth.de>
+# --
+# check_cdot_global - Check powersupplys, fans, nvram status, temp or global health
+# Copyright (C) 2013 noris network AG, http://www.noris.net/
+# --
 
+use 5.10.0;
+use strict;
+use warnings;
 use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use strict;
-use warnings;
-use 5.10.0;
+use Getopt::Long;
 
-my $s = NaServer->new ($ARGV[0], 1, 3);
+GetOptions(
+    'hostname=s' => \my $Hostname,
+    'username=s' => \my $Username,
+    'password=s' => \my $Password,
+    'plugin=s'   => \my $Plugin,
+    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+) or Error("$0: Error in command line arguments\n");
 
+sub Error {
+    print "$0: " . shift;
+    exit 2;
+}
+Error('Option --hostname needed!') unless $Hostname;
+Error('Option --username needed!') unless $Username;
+Error('Option --plugin needed!')   unless $Plugin;
+
+if (   ( $Plugin ne 'power' )
+    && ( $Plugin ne 'fan' )
+    && ( $Plugin ne 'nvram' )
+    && ( $Plugin ne 'temp' )
+    && ( $Plugin ne 'health' ) )
+{
+	Error("Plugin $Plugin not known - possible Plugins: 'power', 'fan', 'nvram', 'temp', 'health'\n");
+}
+
+my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
-$s->set_admin_user($ARGV[1], $ARGV[2]);
+$s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("system-node-get-iter");
 
@@ -23,20 +49,6 @@ if ($output->results_errno != 0) {
 	my $r = $output->results_reason();
 	print "UNKNOWN - $r\n";
 	exit 3;
-}
-
-my $plugin;
-
-if($ARGV[3]){
-	$plugin = $ARGV[3];
-} else {
-        print "Plugin not specified. Usage: check_cnetapp HOST USER PW PLUGIN - possible Plugins: 'power', 'fan', 'nvram', 'temp', 'health'\n";
-        exit 2;
-}
-
-if(($plugin ne "power") && ($plugin ne "fan") && ($plugin ne "nvram") && ($plugin ne "temp") && ($plugin ne "health")){
-	print "Plugin $plugin not known - possible Plugins: 'power', 'fan', 'nvram', 'temp', 'health'\n";
-	exit 2;
 }
 
 my $heads = $output->child_get("attributes-list");
@@ -49,7 +61,7 @@ my $sum_failed_nvram = 0;
 my $sum_failed_temp = 0;
 my $sum_failed_health = 0;
 
-given($plugin){
+given($Plugin){
 	
 	when("power"){
 

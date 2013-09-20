@@ -1,20 +1,36 @@
 #!/usr/bin/perl
 
-# check_cdot_disks
-# usage: ./check_cdot_disks hostname username password
-# Alexander Krogloth <git at krogloth.de>
+# --
+# check_cdot_disk - Check NetApp System Disk State
+# Copyright (C) 2013 noris network AG, http://www.noris.net/
+# --
+use strict;
+use warnings;
 
 use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use strict;
-use warnings;
+use Getopt::Long;
 
-my $s = NaServer->new ($ARGV[0], 1, 3);
+GetOptions(
+    'hostname=s' => \my $Hostname,
+    'username=s' => \my $Username,
+    'password=s' => \my $Password,
+    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+) or Error("$0: Error in command line arguments\n");
 
+sub Error {
+    print "$0: " . shift;
+    exit 2;
+}
+Error('Option --hostname needed!') unless $Hostname;
+Error('Option --username needed!') unless $Username;
+Error('Option --password needed!') unless $Password;
+
+my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
-$s->set_admin_user($ARGV[1], $ARGV[2]);
+$s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("storage-disk-get-iter");
 

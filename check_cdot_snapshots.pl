@@ -1,25 +1,40 @@
 #!/usr/bin/perl
 
-# check_cdot_snapshots
-# usage: ./check_cdot_snapshots hostname username password
-# Alexander Krogloth <git at krogloth.de>
+# --
+# check_cdot_snapshots - Check if old Snapshots exists
+# Copyright (C) 2013 noris network AG, http://www.noris.net/
+# --
 
 use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
 use NaServer;
 use NaElement;
 use strict;
 use warnings;
+use Getopt::Long;
+
+GetOptions(
+    'hostname=s' => \my $Hostname,
+    'username=s' => \my $Username,
+    'password=s' => \my $Password,
+    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+) or Error("$0: Error in command line arguments\n");
+
+sub Error {
+    print "$0: " . shift . "\n";
+    exit 2;
+}
+Error('Option --hostname needed!') unless $Hostname;
+Error('Option --username needed!') unless $Username;
+Error('Option --password needed!') unless $Password;
 
 my $now = time;
 my $old = 0;
 my $old_snapshots;
 
-my $hostname = $ARGV[0];
-my $s = NaServer->new ($hostname, 1, 3);
-
+my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
-$s->set_admin_user($ARGV[1], $ARGV[2]);
+$s->set_admin_user( $Username, $Password );
 
 my $snap_output = $s->invoke("snapshot-get-iter");
 my $snapshots = $snap_output->child_get("attributes-list");
