@@ -4,6 +4,10 @@
 # check_cdot_snapshots - Check if old Snapshots exists
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
+# This software comes with ABSOLUTELY NO WARRANTY. For details, see
+# the enclosed file COPYING for license information (GPL). If you
+# did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
+# --
 
 use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
 use NaServer;

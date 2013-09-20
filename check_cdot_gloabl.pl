@@ -4,6 +4,10 @@
 # check_cdot_global - Check powersupplys, fans, nvram status, temp or global health
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
+# This software comes with ABSOLUTELY NO WARRANTY. For details, see
+# the enclosed file COPYING for license information (GPL). If you
+# did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
+# --
 
 use 5.10.0;
 use strict;

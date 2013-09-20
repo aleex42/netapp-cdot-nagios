@@ -4,6 +4,11 @@
 # check_cdot_aggr - Check Aggregate real Space Usage
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
+# This software comes with ABSOLUTELY NO WARRANTY. For details, see
+# the enclosed file COPYING for license information (GPL). If you
+# did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
+# --
+
 use strict;
 use warnings;
 
