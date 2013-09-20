@@ -49,7 +49,7 @@ if ($output->results_errno != 0) {
 	exit 3;
 }
 
-my $message;
+my $message  = '';
 my $critical = 0;
 my $warning = 0;
 
@@ -68,12 +68,12 @@ foreach my $aggr (@result){
         $critical++ if $percent >= $Critical;
         $warning++  if $percent >= $Warning;
 
-
-    if($message){
-			$message .= ", " . $aggr_name . " (" . $percent . "%)";
-		} else {
-			$message .= $aggr_name . " (" . $percent . "%)";
-		}
+        if ($message) {
+            $message .= ", " . $aggr_name . " (" . $percent . "%)";
+        }
+        else {
+            $message .= $aggr_name . " (" . $percent . "%)";
+        }
 	}
 }
 
