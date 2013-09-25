@@ -26,7 +26,7 @@ GetOptions(
 ) or Error("check_cdot_aggr: Error in command line arguments\n");
 
 sub Error {
-    print "$0: " . shift;
+    print "$0: " . shift( $_[0] ) . "\n";
     exit 2;
 }
 Error('Option --hostname needed!') unless $Hostname;
