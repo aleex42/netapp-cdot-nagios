@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # --
-# check_cdot_snapmirror - Checks if all snapmirrors are healthy
+# check_cdot_snapmirror - Checks SnapMirror Healthnes
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
 # This software comes with ABSOLUTELY NO WARRANTY. For details, see
@@ -74,3 +74,54 @@ _
 	exit 0;
 }
 
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+check_cdot_snapmirror - Checks SnapMirror Healthnes
+
+=head1 SYNOPSIS
+
+check_cdot_snapmirror.pl --hostname HOSTNAME --username USERNAME \
+           --password PASSWORD --warning PERCENT_WARNING \
+           --critical PERCENT_CRITICAL
+
+=head1 DESCRIPTION
+
+Checks the Healthnes of the SnapMirror
+
+=head1 OPTIONS
+
+=over 4
+
+=item --hostname FQDN
+
+The Hostname of the NetApp to monitor
+
+=item --username USERNAME
+
+The Login Username of the NetApp to monitor
+
+=item --password PASSWORD
+
+The Login Password of the NetApp to monitor
+
+=item -help
+
+=item -?
+
+to see this Documentation
+
+=back
+
+=head1 EXIT CODE
+
+2 if there is an error in the SnapMirror
+0 if everything is ok
+
+=head1 AUTHORS
+
+ Alexander Krogloth <git at krogloth.de>
+ Stelios Gikas <sgikas at demokrit.de>

@@ -71,4 +71,53 @@ if (@failed_disks) {
 	exit 0;
 }
 
+__END__
 
+=encoding utf8
+
+=head1 NAME
+
+check_cdot_multipath - Check if all disks are multipathed (4 paths)
+
+=head1 SYNOPSIS
+
+check_cdot_multipath.pl --hostname HOSTNAME --username USERNAME \
+    --password PASSWORD
+
+=head1 DESCRIPTION
+
+Checks if all Disks are multipathed (4 paths)
+
+=head1 OPTIONS
+
+=over 4
+
+=item --hostname FQDN
+
+The Hostname of the NetApp to monitor
+
+=item --username USERNAME
+
+The Login Username of the NetApp to monitor
+
+=item --password PASSWORD
+
+The Login Password of the NetApp to monitor
+
+=item -help
+
+=item -?
+
+to see this Documentation
+
+=back
+
+=head1 EXIT CODE
+
+2 if one or more disks doesn't have 4 Paths
+0 if everything is ok
+
+=head1 AUTHORS
+
+ Alexander Krogloth <git at krogloth.de>
+ Stelios Gikas <sgikas at demokrit.de>

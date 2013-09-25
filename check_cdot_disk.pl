@@ -69,5 +69,54 @@ else {
     exit 0;
 }
 
+__END__
 
+=encoding utf8
+
+=head1 NAME
+
+check_cdot_disk - Checks Disk Healthness
+
+=head1 SYNOPSIS
+
+check_cdot_disk.pl --hostname HOSTNAME \
+    --username USERNAME --password PASSWORD
+
+=head1 DESCRIPTION
+
+Checks if there are some damaged disks.
+
+=head1 OPTIONS
+
+=over 4
+
+=item --hostname FQDN
+
+The Hostname of the NetApp to monitor
+
+=item --username USERNAME
+
+The Login Username of the NetApp to monitor
+
+=item --password PASSWORD
+
+The Login Password of the NetApp to monitor
+
+=item -help
+
+=item -?
+
+to see this Documentation
+
+=back
+
+=head1 EXIT CODE
+
+2 if there are some damadeg disks
+0 if everything is ok
+
+=head1 AUTHORS
+
+ Alexander Krogloth <git at krogloth.de>
+ Stelios Gikas <sgikas at demokrit.de>
 

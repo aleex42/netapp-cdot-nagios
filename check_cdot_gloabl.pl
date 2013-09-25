@@ -134,6 +134,62 @@ given ($Plugin) {
 	}
 }
 
+__END__
 
+=encoding utf8
 
+=head1 NAME
 
+check_cdot_global.pl - Checks health status ( powersupplys, fans, ... )
+
+=head1 SYNOPSIS
+
+check_cdot_global --hostname HOSTNAME --username USERNAME \
+           --password PASSWORD --plugin fan
+
+=head1 DESCRIPTION
+
+Checks Health Status of:
+  * Power Supplys
+  * Fans
+  * NvRam status
+  * Temperatuter
+  * Global Health
+
+=head1 OPTIONS
+
+=over 4
+
+=item --hostname FQDN
+
+The Hostname of the NetApp to check
+
+=item --username USERNAME
+
+The Login Username of the NetApp to check
+
+=item --password PASSWORD
+
+The Login Password of the NetApp to check
+
+=item --plugin PLUGIN_NAME
+
+possible Plugin Names are: 'power', 'fan', 'nvram', 'temp', 'health'
+
+=item -help
+
+=item -?
+
+to see this Documentation
+
+=back
+
+=head1 EXIT CODE
+
+2 if Critical Threshold has been reached
+0 if everything is ok
+
+=head1 AUTHORS
+
+ Alexander Krogloth <git at krogloth.de>
+ Stelios Gikas <sgikas at demokrit.de>

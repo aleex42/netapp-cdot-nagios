@@ -88,3 +88,65 @@ if($critical > 0){
 	exit 0;
 }
 
+__END__
+
+=encoding utf8
+
+=head1 NAME
+
+check_cdot_aggr - Check Aggregate real Space Usage
+
+=head1 SYNOPSIS
+
+check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
+           --password PASSWORD --warning PERCENT_WARNING \
+           --critical PERCENT_CRITICAL
+
+=head1 DESCRIPTION
+
+Checks the Aggregate real Space Usage of the NetApp System and warns
+if warning or critical Thresholds are reached
+
+=head1 OPTIONS
+
+=over 4
+
+=item --hostname FQDN
+
+The Hostname of the NetApp to monitor
+
+=item --username USERNAME
+
+The Login Username of the NetApp to monitor
+
+=item --password PASSWORD
+
+The Login Password of the NetApp to monitor
+
+=item --warning PERCENT_WARNING
+
+The Warning threshold
+
+=item --critical PERCENT_CRITICAL
+
+The Critical threshold
+
+=item -help
+
+=item -?
+
+to see this Documentation
+
+=back
+
+=head1 EXIT CODE
+
+3 on Unknown Error
+2 if Critical Threshold has been reached
+1 if Warning Threshold has been reached
+0 if everything is ok
+
+=head1 AUTHORS
+
+ Alexander Krogloth <git at krogloth.de>
+ Stelios Gikas <sgikas at demokrit.de>
