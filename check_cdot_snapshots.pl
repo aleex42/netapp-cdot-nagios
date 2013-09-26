@@ -44,13 +44,13 @@ my $now = time;
 my @old_snapshots;
 foreach my $snap (@snap_result){
 
-	my $snap_time = $snap->child_get_string("access-time");
-        my $age = $now - $snap_time;
-        if($age >= 7776000){
-		my $snap_name = $snap->child_get_string("name");
-		my $vol_name  = $snap->child_get_string("volume");
-                push @old_snapshots, "$vol_name/$snap_name";
-	}
+    my $snap_time = $snap->child_get_string("access-time");
+    my $age = $now - $snap_time;
+    if($age >= 7776000){
+        my $snap_name = $snap->child_get_string("name");
+        my $vol_name  = $snap->child_get_string("volume");
+        push @old_snapshots, "$vol_name/$snap_name";
+    }
 }
 
 if (@old_snapshots) {

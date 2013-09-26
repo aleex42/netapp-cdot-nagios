@@ -49,89 +49,83 @@ $s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("system-node-get-iter");
 
-if ($output->results_errno != 0) {
-	my $r = $output->results_reason();
-	print "UNKNOWN - $r\n";
-	exit 3;
-}
-
 my $heads = $output->child_get("attributes-list");
 my @result = $heads->children_get();
 given ($Plugin) {
-	when("power"){
-		my $sum_failed_power = 0;
-		foreach my $head (@result){
-			my $failed_power_count = $head->child_get_string("env-failed-power-supply-count");
-			$sum_failed_power+ if $failed_power_count;
-		}
-		if ($sum_failed_power) {
-			print "$sum_failed_power failed power supply(s)\n";
-			exit 2;
-		} else {
-			print "No failed power supplys\n";
-			exit 0;
-		}
-	}
+    when("power"){
+        my $sum_failed_power = 0;
+        foreach my $head (@result){
+            my $failed_power_count = $head->child_get_string("env-failed-power-supply-count");
+            $sum_failed_power+ if $failed_power_count;
+        }
+        if ($sum_failed_power) {
+            print "$sum_failed_power failed power supply(s)\n";
+            exit 2;
+        } else {
+            print "No failed power supplys\n";
+            exit 0;
+        }
+    }
 
-	when("fan"){
-		my $sum_failed_fan = 0;
-		foreach my $head (@result){
-                        my $failed_fan_count = $head->child_get_string("env-failed-fan-count");
-                        $sum_failed_fan++ if $failed_fan_count;
-                }
-                if ($sum_failed_fan) {
-                        print "$sum_failed_fan failed fan(s)\n";
-                        exit 2;
-                } else {
-                        print "No failed fans\n";
-                        exit 0;
-                }
-	}
+    when("fan"){
+        my $sum_failed_fan = 0;
+        foreach my $head (@result){
+            my $failed_fan_count = $head->child_get_string("env-failed-fan-count");
+            $sum_failed_fan++ if $failed_fan_count;
+        }
+        if ($sum_failed_fan) {
+            print "$sum_failed_fan failed fan(s)\n";
+            exit 2;
+        } else {
+            print "No failed fans\n";
+            exit 0;
+        }
+    }
 
-	when("nvram"){
-		my $sum_failed_nvram = 0;
-		foreach my $head (@result){
-			my $nvram_status = $head->child_get_string("nvram-battery-status");
-			$sum_failed_nvram++ if $nvram_status ne "battery_ok";
-		}
-                if ($sum_failed_nvram) {
-                        print "$sum_failed_nvram failed nvram(s)\n";
-                        exit 2;
-                } else {
-                        print "No failed nvram\n";
-                        exit 0;
-                }
-	}
+    when("nvram"){
+        my $sum_failed_nvram = 0;
+        foreach my $head (@result){
+            my $nvram_status = $head->child_get_string("nvram-battery-status");
+            $sum_failed_nvram++ if $nvram_status ne "battery_ok";
+        }
+        if ($sum_failed_nvram) {
+            print "$sum_failed_nvram failed nvram(s)\n";
+            exit 2;
+        } else {
+            print "No failed nvram\n";
+            exit 0;
+        }
+    }
 
-	when("temp"){
-		my $sum_failed_temp = 0;
-		foreach my $head (@result){
-			my $temp_status = $head->child_get_string("env-over-temperature");
-                        $sum_failed_temp++ if $temp_status ne "false";
-                }
-                if ($sum_failed_temp) {
-                        print "Temperature Overheating\n";
-                        exit 2;
-                } else {
-                        print "Temperature OK\n";
-                        exit 0;
-                }
-	}
+    when("temp"){
+        my $sum_failed_temp = 0;
+        foreach my $head (@result){
+            my $temp_status = $head->child_get_string("env-over-temperature");
+            $sum_failed_temp++ if $temp_status ne "false";
+        }
+        if ($sum_failed_temp) {
+            print "Temperature Overheating\n";
+            exit 2;
+        } else {
+            print "Temperature OK\n";
+            exit 0;
+        }
+    }
 
-	when("health"){
-		my $sum_failed_health = 0;
-		foreach my $head (@result){
-			my $health_status = $head->child_get_string("is-node-healthy");
-                        $sum_failed_health++ if $health_status ne "true";
-                }
-                if ($sum_failed_health){
-                        print "Health Status Critical\n";
-                        exit 2;
-                } else {
-                        print "Health Status OK\n";
-                        exit 0;
-                }
-	}
+    when("health"){
+        my $sum_failed_health = 0;
+        foreach my $head (@result){
+            my $health_status = $head->child_get_string("is-node-healthy");
+            $sum_failed_health++ if $health_status ne "true";
+        }
+        if ($sum_failed_health){
+            print "Health Status Critical\n";
+            exit 2;
+        } else {
+            print "Health Status OK\n";
+            exit 0;
+        }
+    }
 }
 
 __END__

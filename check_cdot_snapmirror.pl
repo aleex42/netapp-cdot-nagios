@@ -53,25 +53,25 @@ my @result = $snapmirrors->children_get();
 my @failed_names;
 foreach my $snap (@result){
 
-	my $healthy = $snap->child_get_string("is-healthy");
-	if($healthy eq "false"){
-	        push @failed_names, $snap->child_get_string("destination-volume");
-		$snapmirror_failed++;
-	}
-	else {
-		$snapmirror_ok++;
-	}
+    my $healthy = $snap->child_get_string("is-healthy");
+    if($healthy eq "false"){
+        push @failed_names, $snap->child_get_string("destination-volume");
+        $snapmirror_failed++;
+    }
+    else {
+        $snapmirror_ok++;
+    }
 }
 
 if ($snapmirror_failed) {
-	print <<_;
+    print <<_;
 CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok
-${ \join( ', ', @failed_names ) }
-_
-        exit 2;
+              ${ \join( ', ', @failed_names ) }
+          _
+              exit 2;
 } else {
-	print "OK: $snapmirror_ok snapmirror(s) ok\n";
-	exit 0;
+    print "OK: $snapmirror_ok snapmirror(s) ok\n";
+    exit 0;
 }
 
 __END__

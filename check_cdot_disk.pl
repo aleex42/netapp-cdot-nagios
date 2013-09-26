@@ -39,21 +39,16 @@ $s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("storage-disk-get-iter");
 
-if ($output->results_errno != 0) {
-	my $r = $output->results_reason();
-	print "UNKNOWN - $r\n";
-	exit 3;
-}
-
 my $disks = $output->child_get("attributes-list");
 my @result = $disks->children_get();
 
 my $disk_count = 0;
 my @disk_list;
-foreach my $disk (@result) {
-	$disk_count++;
 
-	my $owner = $disk->child_get("disk-ownership-info");
+foreach my $disk (@result) {
+    $disk_count++;
+
+    my $owner = $disk->child_get("disk-ownership-info");
     my $diskstate = $owner->child_get_string('is-failed');
     if ( $diskstate eq 'true' ) {
         push @disk_list, $disk->child_get_string('disk-name');

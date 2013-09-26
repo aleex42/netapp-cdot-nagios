@@ -43,13 +43,7 @@ $s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("aggr-get-iter");
 
-if ($output->results_errno != 0) {
-	my $r = $output->results_reason();
-	print "UNKNOWN - $r\n";
-	exit 3;
-}
-
-my $message  = '';
+my $message;
 my $critical = 0;
 my $warning = 0;
 
@@ -58,12 +52,12 @@ my @result = $aggrs->children_get();
 
 foreach my $aggr (@result){
 
-	my $aggr_name = $aggr->child_get_string("aggregate-name");
+    my $aggr_name = $aggr->child_get_string("aggregate-name");
 
-	if($aggr_name !~ /^aggr0/){
-		
-		my $space = $aggr->child_get("aggr-space-attributes");
-		my $percent = $space->child_get_int("percent-used-capacity");
+    if($aggr_name !~ /^aggr0/){
+
+        my $space = $aggr->child_get("aggr-space-attributes");
+        my $percent = $space->child_get_int("percent-used-capacity");
 
         $critical++ if $percent >= $Critical;
         $warning++  if $percent >= $Warning;
@@ -74,18 +68,18 @@ foreach my $aggr (@result){
         else {
             $message .= $aggr_name . " (" . $percent . "%)";
         }
-	}
+    }
 }
 
 if($critical > 0){
-        print "CRITICAL: " . $message . "\n";
-        exit 2;
+    print "CRITICAL: " . $message . "\n";
+    exit 2;
 } elsif($warning > 0){
-        print "WARNING: " . $message . "\n";
-        exit 1;
+    print "WARNING: " . $message . "\n";
+    exit 1;
 } else {
-	print "OK: " . $message . "\n";
-	exit 0;
+    print "OK: " . $message . "\n";
+    exit 0;
 }
 
 __END__
