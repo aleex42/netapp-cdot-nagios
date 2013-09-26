@@ -56,7 +56,7 @@ given ($Plugin) {
         my $sum_failed_power = 0;
         foreach my $head (@result){
             my $failed_power_count = $head->child_get_string("env-failed-power-supply-count");
-            $sum_failed_power+ if $failed_power_count;
+            $sum_failed_power++ if $failed_power_count;
         }
         if ($sum_failed_power) {
             print "$sum_failed_power failed power supply(s)\n";
