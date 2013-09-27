@@ -67,7 +67,7 @@ if ($snapmirror_failed) {
     print <<_;
 CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok
               ${ \join( ', ', @failed_names ) }
-          _
+_
               exit 2;
 } else {
     print "OK: $snapmirror_ok snapmirror(s) ok\n";
