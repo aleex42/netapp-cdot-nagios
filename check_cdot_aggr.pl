@@ -43,6 +43,12 @@ $s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("aggr-get-iter");
 
+if ($output->results_errno != 0) {
+    my $r = $output->results_reason();
+    print "UNKNOWN: $r\n";
+    exit 3;
+}
+
 my $message;
 my $critical = 0;
 my $warning = 0;

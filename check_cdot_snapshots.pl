@@ -37,6 +37,14 @@ $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
 my $snap_output = $s->invoke("snapshot-get-iter");
+
+if ($snap_output->results_errno != 0) {
+    my $r = $snap_output->results_reason();
+    print "UNKNOWN: $r\n";
+    exit 3;
+}
+
+
 my $snapshots = $snap_output->child_get("attributes-list");
 my @snap_result = $snapshots->children_get();
 
@@ -106,6 +114,7 @@ to see this Documentation
 
 =head1 EXIT CODE
 
+3 if timeout occured
 1 if Warning Threshold (90 days) has been reached
 0 if everything is ok
 

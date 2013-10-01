@@ -40,6 +40,12 @@ $s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("storage-disk-get-iter");
 
+if ($output->results_errno != 0) {
+    my $r = $output->results_reason();
+    print "UNKNOWN: $r\n";
+    exit 3;
+}
+
 my $heads = $output->child_get("attributes-list");
 my @result = $heads->children_get();
 
@@ -109,6 +115,7 @@ to see this Documentation
 
 =head1 EXIT CODE
 
+3 if timeout occured
 2 if one or more disks doesn't have 4 Paths
 0 if everything is ok
 

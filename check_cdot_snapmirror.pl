@@ -38,10 +38,11 @@ $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
 my $output = $s->invoke("snapmirror-get-iter");
+
 if ($output->results_errno != 0) {
-	my $r = $output->results_reason();
-	print "UNKNOWN - $r\n";
-	exit 3;
+    my $r = $output->results_reason();
+    print "UNKNOWN: $r\n";
+    exit 3;
 }
 
 my $snapmirror_failed = 0;
@@ -118,6 +119,7 @@ to see this Documentation
 
 =head1 EXIT CODE
 
+3 if timeout occured
 2 if there is an error in the SnapMirror
 0 if everything is ok
 
