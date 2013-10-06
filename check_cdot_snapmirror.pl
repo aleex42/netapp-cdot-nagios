@@ -49,6 +49,12 @@ my $snapmirror_failed = 0;
 my $snapmirror_ok = 0;
 
 my $snapmirrors = $output->child_get("attributes-list");
+
+unless($snapmirrors){
+    print "OK - no snapmirrors\n";
+    exit 0;
+}
+
 my @result = $snapmirrors->children_get();
 
 my @failed_names;
