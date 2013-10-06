@@ -44,8 +44,13 @@ if ($snap_output->results_errno != 0) {
     exit 3;
 }
 
-
 my $snapshots = $snap_output->child_get("attributes-list");
+
+unless($snapshots){
+    print "OK - No snapshots\n";
+    exit 0;
+}
+
 my @snap_result = $snapshots->children_get();
 
 my $now = time;
