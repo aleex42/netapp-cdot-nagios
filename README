@@ -1,22 +1,45 @@
 netapp-cdot-nagios
 ==================
 
-	About
-	-----
+About
+-----
 
-	Scripts for monitoring NetApp cDOT-Systems via NetApp Perl-API
+    Scripts for monitoring NetApp cDOT-Systems via NetApp Perl-API
+
+Plugins
+-------
+
+    Currently there are the following checks:
+
+    * check_cdot_aggr.pl
+      Checks Aggregate Space Usage
+
+    * check_cdot_disk.pl
+      Checks Disk Healthiness
+
+    * check_cdot_global.pl
+      Checks Global Healthiness
+
+    * check_cdot_multipath.pl
+      Checks Disk Multipathing
+
+    * check_cdot_snapmirror.pl
+      Checks SnapMirror Healthiness
+
+    * check_cdot_snapshots.pl
+      Checks Snapshot Age
 
 
-	Examples
-	--------
+Examples
+--------
 
-	For some examples have a look at my wiki: 
-	http://wiki.krogloth.de/index.php/NetApp_C-Mode/Monitoring
+    For some examples have a look at my wiki: 
+    http://wiki.krogloth.de/index.php/NetApp_C-Mode/Monitoring
 
 
-	Contact / Author
-	----------------
+Contact / Author
+----------------
 
-	Alexander Krogloth
-	<git at krogloth.de>
-	<alexander.krogloth at noris.de> for the noris network AG.
+    Alexander Krogloth
+    <git at krogloth.de>
+    <alexander.krogloth at noris.de> for the noris network AG.
