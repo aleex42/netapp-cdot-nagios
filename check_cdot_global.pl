@@ -120,12 +120,23 @@ given ($Plugin) {
 
     when("health"){
         my $sum_failed_health = 0;
+        my $failed_node;
         foreach my $head (@result){
+
             my $health_status = $head->child_get_string("is-node-healthy");
-            $sum_failed_health++ if $health_status ne "true";
+            my $node_name = $head->child_get_string("node");
+            if($health_status ne "true"){
+                $sum_failed_health++;
+
+                if($failed_node){
+                    $failed_node .= ", $node_name";
+                } else {
+                    $failed_node .= $node_name;
+                }
+            }
         }
         if ($sum_failed_health){
-            print "Health Status Critical\n";
+            print "Health Status Critical ($failed_node)\n";
             exit 2;
         } else {
             print "Health Status OK\n";
