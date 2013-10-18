@@ -107,7 +107,9 @@ given ($Plugin) {
         my $sum_failed_temp = 0;
         foreach my $head (@result){
             my $temp_status = $head->child_get_string("env-over-temperature");
-            $sum_failed_temp++ if $temp_status ne "false";
+            if($head->child_get_string("is-node-healthy") eq "true"){
+                $sum_failed_temp++ if $temp_status ne "false";
+            }
         }
         if ($sum_failed_temp) {
             print "Temperature Overheating\n";
