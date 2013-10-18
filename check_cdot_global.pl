@@ -42,6 +42,8 @@ if (   ( $Plugin ne 'power' )
 	Error("Plugin $Plugin not known - possible Plugins: 'power', 'fan', 'nvram', 'temp', 'health'\n");
 }
 
+my $failed_node;
+
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
@@ -62,14 +64,23 @@ given ($Plugin) {
         my $sum_failed_power = 0;
         foreach my $head (@result){
             my $failed_power_count = $head->child_get_string("env-failed-power-supply-count");
-            $sum_failed_power++ if $failed_power_count;
-        }
-        if ($sum_failed_power) {
-            print "$sum_failed_power failed power supply(s)\n";
-            exit 2;
-        } else {
-            print "No failed power supplys\n";
-            exit 0;
+            my $node_name = $head->child_get_string("node");
+            if($failed_power_count){
+                $sum_failed_power++;
+
+                if($failed_node){
+                    $failed_node .= ", $node_name";
+                } else {
+                    $failed_node .= $node_name;
+                }        
+            }
+            if ($sum_failed_power) {
+                print "$sum_failed_power failed power supply(s)\n";
+                exit 2;
+            } else {
+                print "No failed power supplys\n";
+                exit 0;
+            }
         }
     }
 
@@ -77,14 +88,24 @@ given ($Plugin) {
         my $sum_failed_fan = 0;
         foreach my $head (@result){
             my $failed_fan_count = $head->child_get_string("env-failed-fan-count");
-            $sum_failed_fan++ if $failed_fan_count;
-        }
-        if ($sum_failed_fan) {
-            print "$sum_failed_fan failed fan(s)\n";
-            exit 2;
-        } else {
-            print "No failed fans\n";
-            exit 0;
+            my $node_name = $head->child_get_string("node");
+
+            if($failed_fan_count){
+                $sum_failed_fan++;
+
+                if($failed_node){
+                    $failed_node .= ", $node_name";
+                } else {
+                    $failed_node .= $node_name;
+                }
+            }
+            if ($sum_failed_fan) {
+                print "$sum_failed_fan failed fan(s) ($failed_node)\n";
+                exit 2;
+            } else {
+                print "No failed fans\n";
+                exit 0;
+            }
         }
     }
 
@@ -92,10 +113,19 @@ given ($Plugin) {
         my $sum_failed_nvram = 0;
         foreach my $head (@result){
             my $nvram_status = $head->child_get_string("nvram-battery-status");
-            $sum_failed_nvram++ if $nvram_status ne "battery_ok";
+            my $node_name = $head->child_get_string("node");
+            if($head->child_get_string("is-node-healthy") eq "true"){
+                $sum_failed_nvram++ if $nvram_status ne "battery_ok";
+
+                if($failed_node){
+                    $failed_node .= ", $node_name";
+                } else {
+                    $failed_node .= $node_name;
+                }
+            }
         }
         if ($sum_failed_nvram) {
-            print "$sum_failed_nvram failed nvram(s)\n";
+            print "$sum_failed_nvram failed nvram(s) ($failed_node)\n";
             exit 2;
         } else {
             print "No failed nvram\n";
@@ -107,12 +137,19 @@ given ($Plugin) {
         my $sum_failed_temp = 0;
         foreach my $head (@result){
             my $temp_status = $head->child_get_string("env-over-temperature");
+            my $node_name = $head->child_get_string("node");
             if($head->child_get_string("is-node-healthy") eq "true"){
                 $sum_failed_temp++ if $temp_status ne "false";
+
+                if($failed_node){
+                    $failed_node .= ", $node_name";
+                } else {
+                    $failed_node .= $node_name;
+                }
             }
         }
         if ($sum_failed_temp) {
-            print "Temperature Overheating\n";
+            print "Temperature Overheating ($failed_node)\n";
             exit 2;
         } else {
             print "Temperature OK\n";
@@ -122,7 +159,6 @@ given ($Plugin) {
 
     when("health"){
         my $sum_failed_health = 0;
-        my $failed_node;
         foreach my $head (@result){
 
             my $health_status = $head->child_get_string("is-node-healthy");
