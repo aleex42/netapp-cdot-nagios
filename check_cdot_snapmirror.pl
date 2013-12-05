@@ -61,13 +61,23 @@ my @failed_names;
 foreach my $snap (@result){
 
     my $healthy = $snap->child_get_string("is-healthy");
+    my $lag = $snap->child_get_string("lag-time");
+    my $dest_vol = $snap->child_get_string("destination-volume");
+
     if($healthy eq "false"){
-        push @failed_names, $snap->child_get_string("destination-volume");
+        push @failed_names, $dest_vol;
         $snapmirror_failed++;
     }
     else {
         $snapmirror_ok++;
     }
+
+    if($lag >= 86400){
+        unless(grep /$dest_vol/, @failed_names){
+            push @failed_names, $dest_vol;
+            $snapmirror_failed++;
+        }
+    } 
 }
 
 if ($snapmirror_failed) {
@@ -97,7 +107,7 @@ check_cdot_snapmirror.pl --hostname HOSTNAME --username USERNAME \
 
 =head1 DESCRIPTION
 
-Checks the Healthnes of the SnapMirror
+Checks the Healthnes of the SnapMirror and wheather every snapshot has a lag lower than one day
 
 =head1 OPTIONS
 
