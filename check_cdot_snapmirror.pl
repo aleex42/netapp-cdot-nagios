@@ -72,7 +72,8 @@ foreach my $snap (@result){
         $snapmirror_ok++;
     }
 
-    if($lag >= 90000){
+    # ~ 26 hours
+    if($lag >= 93600){
         unless(grep /$dest_vol/, @failed_names){
             push @failed_names, $dest_vol;
             $snapmirror_failed++;
