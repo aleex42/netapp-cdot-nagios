@@ -21,6 +21,7 @@ GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
+    'lag=i'      => \my $LagOpt,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -31,6 +32,7 @@ sub Error {
 Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
+$LagOpt = 3600 * 28 unless $LagOpt; # 1 day 3 hours
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
@@ -57,7 +59,8 @@ unless($snapmirrors){
 
 my @result = $snapmirrors->children_get();
 
-my @failed_names;
+my %failed_names;
+
 foreach my $snap (@result){
 
     my $healthy = $snap->child_get_string("is-healthy");
@@ -65,28 +68,31 @@ foreach my $snap (@result){
     my $dest_vol = $snap->child_get_string("destination-volume");
 
     if($healthy eq "false"){
-        push @failed_names, $dest_vol;
+				$failed_names{$dest_vol} = [ $healthy, $lag ];
         $snapmirror_failed++;
     }
     else {
         $snapmirror_ok++;
     }
 
-    # ~ 26 hours
-    if($lag >= 93600){
-        unless(grep /$dest_vol/, @failed_names){
-            push @failed_names, $dest_vol;
-            $snapmirror_failed++;
+    if(defined($lag) && ($lag >= $LagOpt)){
+				unless($failed_names{$dest_vol}){
+					$failed_names{$dest_vol} = [ $healthy, $lag ];						
+					$snapmirror_failed++;
         }
     } 
 }
 
 if ($snapmirror_failed) {
-    print <<_;
-CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok
-              ${ \join( ', ', @failed_names ) }
-_
-              exit 2;
+	print "CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok\n";
+	printf ("%-*s%*s%*s\n", 50, "Name", 10, "Healthy", 10, "Delay");
+	for my $vol ( keys %failed_names ) {
+		my $health_lag = $failed_names{$vol};
+		my @health_lag_value = @{ $health_lag };
+        $health_lag_value[1] = "--- " unless $health_lag_value[1];
+		printf ("%-*s%*s%*s\n", 50, $vol, 10, $health_lag_value[0], 10, $health_lag_value[1] . "s");
+	}
+  exit 2;
 } else {
     print "OK: $snapmirror_ok snapmirror(s) ok\n";
     exit 0;
@@ -125,6 +131,10 @@ The Login Username of the NetApp to monitor
 =item --password PASSWORD
 
 The Login Password of the NetApp to monitor
+
+=item --lag DELAY-SECONDS
+
+Snapmirror delay in Seconds. Default 28h
 
 =item -help
 
