@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # --
-# check_cdot_volume - Check Volume Space Usage
+# check_cdot_volume - Check Volume Usage
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
 # This software comes with ABSOLUTELY NO WARRANTY. For details, see
@@ -21,8 +21,10 @@ GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
-    'warning=i'  => \my $Warning,
-    'critical=i' => \my $Critical,
+    'size-warning=i'  => \my $SizeWarning,
+    'size-critical=i' => \my $SizeCritical,
+    'inode-warning=i'  => \my $InodeWarning,
+    'inode-critical=i' => \my $InodeCritical,
     'volume=s'   => \my $Volume,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -34,8 +36,10 @@ sub Error {
 Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
-Error('Option --warning needed!')  unless $Warning;
-Error('Option --critical needed!') unless $Critical;
+Error('Option --size-warning needed!')  unless $SizeWarning;
+Error('Option --size-critical needed!') unless $SizeCritical;
+Error('Option --inode-warning needed!')  unless $InodeWarning;
+Error('Option --inode-critical needed!') unless $InodeCritical;
 Error('Option --volume needed!') unless $Volume;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
@@ -54,11 +58,10 @@ $xi2->child_add_string('name','<name>');
 my $xi3 = new NaElement('volume-space-attributes');
 $xi1->child_add($xi3);
 $xi3->child_add_string('percentage-size-used','<percentage-size-used>');
-$xi3->child_add_string('size-used','<size-used>');
-$xi3->child_add_string('size-total','<size-total>');
-$xi3->child_add_string('percentage-snapshot-reserve','<percentage-snapshot-reserve>');
-$xi3->child_add_string('percentage-snapshot-reserve-used','<percentage-snapshot-reserve-used>');
-
+my $xi13 = new NaElement('volume-inode-attributes');
+$xi1->child_add($xi13);
+$xi13->child_add_string('files-total','<files-total>');
+$xi13->child_add_string('files-used','<files-used>');
 my $xi4 = new NaElement('query');
 $api->child_add($xi4);
 my $xi5 = new NaElement('volume-attributes');
@@ -86,6 +89,12 @@ if($matching_volumes > 1){
 }
 
 foreach my $vol (@result){
+
+    my $inode_info = $vol->child_get("volume-inode-attributes");
+    my $inode_used = $inode_info->child_get_int("files-used");
+    my $inode_total = $inode_info->child_get_int("files-total");
+
+    my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
     
     my $vol_info = $vol->child_get("volume-id-attributes");
     my $vol_name = $vol_info->child_get_string("name");
@@ -93,30 +102,15 @@ foreach my $vol (@result){
     my $vol_space = $vol->child_get("volume-space-attributes");
     
     my $percent = $vol_space->child_get_int("percentage-size-used");
-    my $snap_reserv_used = $vol_space->child_get_int("percentage-snapshot-reserve-used");
-    my $snap_reserv = $vol_space->child_get_int("percentage-snapshot-reserve");
-    my $used = $vol_space->child_get_int("size-used");
-    my $total = $vol_space->child_get_int("size-total");
 
-    my $snap_used = $snap_reserv_used*$snap_reserv*$total*0.0001;
-
-    $used += $snap_used;
-    $used /= 1024*1024*1024;
-    my $rounded_used = sprintf "%.2f", $used;
-
-    $total += (0.01*$snap_reserv*$total);
-    $total /= 1024*1024*1024;
-    my $rounded_total = sprintf "%.2f", $total;
-
-    
-    if($percent >= $Critical){
-        print "CRITICAL: $percent% (${rounded_used} GB / ${rounded_total} GB)\n";
-        exit 2;
-    } elsif($percent >= $Warning){
-        print "WARNING: $percent% (${rounded_used} GB / ${rounded_total} GB)\n";
+    if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
+        print "CRITICAL: $vol_name (Size: $percent%, Inodes: $inode_percent%)\n";
+         exit 2;
+    } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
+        print "WARNING: $vol_name (Size: $percent%, Inodes: $inode_percent%)\n";
         exit 1;
     } else {
-        print "OK: $percent% (${rounded_used} GB / ${rounded_total} GB)\n";
+        print "OK: $vol_name (Size: $percent%, Inodes: $inode_percent%)\n";
         exit 0;
     }
 }
@@ -127,17 +121,18 @@ __END__
 
 =head1 NAME
 
-check_cdot_volume - Check Volume Space Usage
+check_cdot_volume - Check Volume Usage
 
 =head1 SYNOPSIS
 
 check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD --warning PERCENT_WARNING \
-           --critical PERCENT_CRITICAL --volume VOLUME
+           --password PASSWORD --size-warning PERCENT_WARNING \
+           --size-critical PERCENT_CRITICAL --inode-warning PERCENT_WARNING \
+           --inode-critical PERCENT_CRITICAL --volume VOLUME
 
 =head1 DESCRIPTION
 
-Checks the Volume Space Usage of the NetApp System and warns
+Checks the Volume Space and Inode Usage of the NetApp System and warns
 if warning or critical Thresholds are reached
 
 =head1 OPTIONS
@@ -156,11 +151,19 @@ The Login Username of the NetApp to monitor
 
 The Login Password of the NetApp to monitor
 
-=item --warning PERCENT_WARNING
+=item --size-warning PERCENT_WARNING
 
 The Warning threshold
 
-=item --critical PERCENT_CRITICAL
+=item --size-critical PERCENT_CRITICAL
+
+The Critical threshold
+
+=item --inode-warning PERCENT_WARNING
+
+The Warning threshold
+
+=item --inode-critical PERCENT_CRITICAL
 
 The Critical threshold
 
