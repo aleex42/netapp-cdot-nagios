@@ -62,12 +62,14 @@ my @result = $snapmirrors->children_get();
 my %failed_names;
 
 foreach my $snap (@result){
+
     my $status = $snap->child_get_string("relationship-status");
     my $healthy = $snap->child_get_string("is-healthy");
     my $lag = $snap->child_get_string("lag-time");
     my $dest_vol = $snap->child_get_string("destination-volume");
+    my $current_transfer = $snap->child_get_string("current-transfer-type");
 
-    if($healthy eq "false"){
+    if(($healthy eq "false") && ($current_transfer ne "initialize")){
 				$failed_names{$dest_vol} = [ $healthy, $lag ];
         $snapmirror_failed++;
     }
