@@ -53,6 +53,8 @@ my $xi3 = new NaElement('volume-space-attributes');
 $xi1->child_add($xi3);
 my $xi13 = new NaElement('volume-qos-attributes');
 $xi1->child_add($xi13);
+my $xi14 = new NaElement('volume-state-attributes');
+$xi1->child_add($xi14);
 $api->child_add_string('max-records','1000000');
 
 my $output = $s->invoke_elem($api);
@@ -76,19 +78,27 @@ foreach my $vol (@result){
     my $vol_name = $vol_info->child_get_string("name");
     my $vol_type = $vol_info->child_get_string("type");
 
-    unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp")){
+    my $vol_state = $vol->child_get("volume-state-attributes");
+    if($vol_state){
 
-        my $space = $vol->child_get("volume-space-attributes");
-        my $qos = $vol->child_get("volume-qos-attributes");
+        my $state = $vol_state->child_get_string("state");
 
-        my $guarantee = $space->child_get_string("space-guarantee");
+        if($state && ($state eq "online")){
 
-        unless($qos){
-            push(@no_qos, $vol_name);
-        }
+            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp")){
 
-        unless($guarantee eq "none"){
-            push(@no_guarantee, $vol_name);
+                my $space = $vol->child_get("volume-space-attributes");
+                my $qos = $vol->child_get("volume-qos-attributes");
+                my $guarantee = $space->child_get_string("space-guarantee");
+
+                unless($qos){
+                    push(@no_qos, $vol_name);
+                }
+
+                unless($guarantee eq "none"){
+                    push(@no_guarantee, $vol_name);
+                }
+            }
         }
     }
 }
