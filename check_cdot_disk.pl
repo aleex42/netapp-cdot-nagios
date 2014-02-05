@@ -114,7 +114,7 @@ to see this Documentation
 =head1 EXIT CODE
 
 3 if timeout occured
-2 if there are some damadeg disks
+2 if there are some damaged disks
 0 if everything is ok
 
 =head1 AUTHORS
