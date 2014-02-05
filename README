@@ -32,6 +32,9 @@ Plugins
     * check_cdot_sparedisks.pl
       Checks Sparedisk Status
 
+    * check_cdot_recommendation.pl 
+      Checks that some Best Practises are configured
+
 Examples
 --------
 
