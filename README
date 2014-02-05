@@ -29,6 +29,8 @@ Plugins
     * check_cdot_snapshots.pl
       Checks Snapshot Age
 
+    * check_cdot_sparedisks.pl
+      Checks Sparedisk Status
 
 Examples
 --------
