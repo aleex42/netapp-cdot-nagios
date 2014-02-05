@@ -66,11 +66,11 @@ foreach my $disk (@result) {
 }
 
 if ($not_zeroed){
-    print "$not_zeroed spare disk(s) are not zeroed\n";
+    print "$not_zeroed spare disk(s) not zeroed\n";
     exit 2;
 }
 else {
-    print "All spare disks are zeroed\n";
+    print "All spare disks zeroed\n";
     exit 0;
 }
 
