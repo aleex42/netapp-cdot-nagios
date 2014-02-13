@@ -50,6 +50,7 @@ if ($output->results_errno != 0) {
 }
 
 my $message;
+my $perf;
 my $critical = 0;
 my $warning = 0;
 
@@ -67,20 +68,22 @@ foreach my $aggr (@result){
 
     if ($message) {
         $message .= ", " . $aggr_name . " (" . $percent . "%)";
+        $perf .= " " . $aggr_name . "=" . $percent . "%";
     }
     else {
         $message .= $aggr_name . " (" . $percent . "%)";
+        $perf .= $aggr_name . "=" . $percent . "%";
     }
 }
 
 if($critical > 0){
-    print "CRITICAL: " . $message . "\n";
+    print "CRITICAL: " . $message . "|" . $perf ."\n";
     exit 2;
 } elsif($warning > 0){
-    print "WARNING: " . $message . "\n";
+    print "WARNING: " . $message . "|" . $perf ."\n";
     exit 1;
 } else {
-    print "OK: " . $message . "\n";
+    print "OK: " . $message . "|" . $perf ."\n";
     exit 0;
 }
 
