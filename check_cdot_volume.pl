@@ -8,7 +8,6 @@
 # the enclosed file COPYING for license information (GPL). If you
 # did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
 # --
-# 2014.02.01 sgr@firstframe.net: --perf flag for performance data outpu added.
 
 use strict;
 use warnings;
@@ -201,3 +200,4 @@ to see this Documentation
 =head1 AUTHORS
 
  Alexander Krogloth <git at krogloth.de>
+ Stefan Grosser <sgr at firstframe.net>
