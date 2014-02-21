@@ -8,6 +8,7 @@
 # the enclosed file COPYING for license information (GPL). If you
 # did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
 # --
+# 2014.02.01 sgr@firstframe.net: --perf flag for performance data outpu added.
 
 use strict;
 use warnings;
@@ -25,6 +26,7 @@ GetOptions(
     'size-critical=i' => \my $SizeCritical,
     'inode-warning=i'  => \my $InodeWarning,
     'inode-critical=i' => \my $InodeCritical,
+    'perf'     => \my $perf,
     'volume=s'   => \my $Volume,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -104,13 +106,19 @@ foreach my $vol (@result){
     my $percent = $vol_space->child_get_int("percentage-size-used");
 
     if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
-        print "CRITICAL: $vol_name (Size: $percent%, Inodes: $inode_percent%)\n";
+        print "CRITICAL: $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        if($perf) {print "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+        print "\n";
          exit 2;
     } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
-        print "WARNING: $vol_name (Size: $percent%, Inodes: $inode_percent%)\n";
+        print "WARNING: $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        if($perf) {print "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+        print "\n";
         exit 1;
     } else {
-        print "OK: $vol_name (Size: $percent%, Inodes: $inode_percent%)\n";
+        print "OK: $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        if($perf) {print "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+        print "\n";
         exit 0;
     }
 }
@@ -128,7 +136,7 @@ check_cdot_volume - Check Volume Usage
 check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
            --password PASSWORD --size-warning PERCENT_WARNING \
            --size-critical PERCENT_CRITICAL --inode-warning PERCENT_WARNING \
-           --inode-critical PERCENT_CRITICAL --volume VOLUME
+           --inode-critical PERCENT_CRITICAL --volume VOLUME --perf
 
 =head1 DESCRIPTION
 
@@ -170,6 +178,10 @@ The Critical threshold
 =item --volume VOLUME
 
 The name of the Volume to check
+
+=item --perf
+
+Flag for performance data output
 
 =item -help
 
