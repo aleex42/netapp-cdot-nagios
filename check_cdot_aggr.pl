@@ -23,6 +23,7 @@ GetOptions(
     'password=s' => \my $Password,
     'warning=i'  => \my $Warning,
     'critical=i' => \my $Critical,
+    'perf'     => \my $perf,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -49,6 +50,7 @@ if ($output->results_errno != 0) {
     exit 3;
 }
 
+my $perfmsg;
 my $message;
 my $critical = 0;
 my $warning = 0;
@@ -70,17 +72,30 @@ foreach my $aggr (@result){
     }
     else {
         $message .= $aggr_name . " (" . $percent . "%)";
+    }   
+
+    if ($perf) {
+        $perfmsg .= " $aggr_name=$percent%;$Warning;$Critical";
     }
+    else {
+        $perfmsg .= "$aggr_name=$percent%;$Warning;$Critical";
+    }   
 }
 
 if($critical > 0){
-    print "CRITICAL: " . $message . "\n";
+    print "CRITICAL: " . $message;
+    if($perf) {print"|" . $perfmsg;}
+    print  "\n";
     exit 2;
 } elsif($warning > 0){
-    print "WARNING: " . $message . "\n";
+    print "WARNING: " . $message;
+    if($perf){print"|" . $perfmsg;}
+    print  "\n";    
     exit 1;
 } else {
-    print "OK: " . $message . "\n";
+    print "OK: " . $message;
+    if($perf){print"|" . $perfmsg;}    
+    print  "\n";    
     exit 0;
 }
 
@@ -96,7 +111,7 @@ check_cdot_aggr - Check Aggregate real Space Usage
 
 check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
            --password PASSWORD --warning PERCENT_WARNING \
-           --critical PERCENT_CRITICAL
+           --critical PERCENT_CRITICAL --perf
 
 =head1 DESCRIPTION
 
@@ -127,6 +142,10 @@ The Warning threshold
 
 The Critical threshold
 
+=item --perf
+
+Flag for performance data output
+
 =item -help
 
 =item -?
@@ -146,3 +165,4 @@ to see this Documentation
 
  Alexander Krogloth <git at krogloth.de>
  Stelios Gikas <sgikas at demokrit.de>
+ Stefan Grosser <sgr at firstframe.net>
