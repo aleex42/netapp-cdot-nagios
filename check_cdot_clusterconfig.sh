@@ -10,8 +10,9 @@
 # --
 
 HOSTNAME=$1
+USERNAME=$2 
 
-NODES=$(ssh admin@$HOSTNAME node show | awk '$0 ~ "entries were displayed" { print $1 }')
+NODES=$(ssh $USERNAME@$HOSTNAME node show | awk '$0 ~ "entries were displayed" { print $1 }')
 
 VLAN_DIFF=$(ssh admin@$HOSTNAME network port vlan show | awk '$1 ~ "a0a-" { count[$1]++ } END { for (x in count) if (count[x] < '$NODES') printf x ", "; print }')
 FAILOVER_DIFF=$(ssh admin@$HOSTNAME network interface failover-groups show | awk 'BEGIN{ nodes='$NODES'; count=nodes } $1 ~ "failover" { if (nodes != count) { print group ", " }; count=0; group=substr($1, 0, length($0)-1) } $2 ~ "a0a-" {count++}')
