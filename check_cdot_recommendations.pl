@@ -71,6 +71,7 @@ my @result = $volumes->children_get();
 my @no_qos;
 my @no_guarantee;
 my @no_schedule = ();
+my @no_failover;
 
 foreach my $vol (@result){
 
@@ -123,11 +124,39 @@ foreach my $snap (@snapmirror_result){
     }
 }
 
+my $lif_api = new NaElement('net-interface-get-iter');
+$lif_api->child_add_string('max-records','1000000');
+
+my $lif_output = $s->invoke_elem($lif_api);
+
+if ($lif_output->results_errno != 0) {
+    my $r = $lif_output->results_reason();
+    print "UNKNOWN: $r\n";
+    exit 3;
+}
+
+my $lifs = $lif_output->child_get("attributes-list");
+my @lif_result = $lifs->children_get();
+
+foreach my $lif (@lif_result){
+
+    my $lif_name = $lif->child_get_string("interface-name");
+    my $failover_group = $lif->child_get_string("failover-group");
+    my $role = $lif->child_get_string("role");
+
+    if($failover_group eq "system-defined"){
+        if(($role eq "data") || ($role eq "cluster-mgmt")){
+            push(@no_failover, $lif_name);
+        }
+    }
+}
+
 my $qos_count = @no_qos;
 my $guarantee_count = @no_guarantee;
 my $schedule_count = @no_schedule;
+my $failover_count = @no_failover;
 
-if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0)){
+if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0)){
 
     print "WARNING: not all recommendations are applied:\n";
 
@@ -150,6 +179,12 @@ if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0)){
     if($schedule_count != 0){
         print "SnapMirror without schedule:\n";
         foreach(@no_schedule){
+            print "-> " . $_ . "\n";
+        }
+    }
+    if($failover_count != 0){
+        print "LIFs without failover-groups:\n";
+        foreach(@no_failover){
             print "-> " . $_ . "\n";
         }
     }
