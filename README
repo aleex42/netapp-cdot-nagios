@@ -35,6 +35,9 @@ Plugins
     * check_cdot_recommendation.pl 
       Checks that some Best Practises are configured
 
+    * check_cdot_clusterconfig.sh
+      Checks that network configurations on all nodes are the same
+
 Examples
 --------
 
