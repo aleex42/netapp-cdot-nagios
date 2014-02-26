@@ -71,6 +71,13 @@ foreach my $lif (@lif_result){
 
 my $node_api = new NaElement('cluster-node-get-iter');
 my $node_output =$s->invoke_elem($node_api);
+
+if ($node_output->results_errno != 0) {
+    my $r = $node_output->results_reason();
+    print "UNKNOWN: $r\n";
+    exit 3;
+}
+
 my $nodes = $node_output->child_get("attributes-list");
 my @node_result = $nodes->children_get();
 my $cf_api = new NaElement('cf-status');
@@ -82,6 +89,13 @@ foreach my $node (@node_result){
     my $cf_api = new NaElement('cf-status');
     $cf_api->child_add_string('node', $node_name);
     my $cf_output = $s->invoke_elem($cf_api);
+
+    if ($cf_output->results_errno != 0) {
+        my $r = $cf_output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
+
     my $link_status = $cf_output->child_get_string("interconnect-links");
     $link_status = (split(/[()]/, $link_status))[1];
 
