@@ -12,7 +12,7 @@ Plugins
     Currently there are the following checks:
 
     * check_cdot_aggr.pl
-      Checks Aggregate Space Usage
+      Checks Aggregate Space Usage (also supports performance data)
 
     * check_cdot_disk.pl
       Checks Disk Healthiness
@@ -31,6 +31,9 @@ Plugins
 
     * check_cdot_sparedisks.pl
       Checks Sparedisk Status
+
+    * check_cdot_volume.pl
+      Checks Space and Inode Usage of all or one specific Volume (also supports performance data)
 
     * check_cdot_recommendation.pl 
       Checks that some Best Practises are configured
