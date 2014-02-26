@@ -41,6 +41,9 @@ Plugins
     * check_cdot_clusterconfig.sh
       Checks that network configurations on all nodes are the same
 
+    * check_cdot_clusterlinks.pl
+      Checks HA-Interconnects and Cluster Interfaces
+
 Examples
 --------
 
