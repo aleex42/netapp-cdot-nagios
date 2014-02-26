@@ -41,7 +41,6 @@ Error('Option --size-warning needed!')  unless $SizeWarning;
 Error('Option --size-critical needed!') unless $SizeCritical;
 Error('Option --inode-warning needed!')  unless $InodeWarning;
 Error('Option --inode-critical needed!') unless $InodeCritical;
-Error('Option --volume needed!') unless $Volume;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
@@ -67,9 +66,11 @@ my $xi4 = new NaElement('query');
 $api->child_add($xi4);
 my $xi5 = new NaElement('volume-attributes');
 $xi4->child_add($xi5);
-my $xi6 = new NaElement('volume-id-attributes');
-$xi5->child_add($xi6);
-$xi6->child_add_string('name',$Volume);
+if($Volume){
+    my $xi6 = new NaElement('volume-id-attributes');
+    $xi5->child_add($xi6);
+    $xi6->child_add_string('name',$Volume);
+}
 
 my $output = $s->invoke_elem($api);
 
@@ -80,14 +81,24 @@ if ($output->results_errno != 0) {
 }
 
 my $volumes = $output->child_get("attributes-list");
+
+unless($volumes){
+    print "CRITICAL: no volume matching this name\n";
+    exit 2;
+}
+
 my @result = $volumes->children_get();
 
 my $matching_volumes = @result;
 
-if($matching_volumes > 1){
-    print "CRITICAL: more than one volume matching this name";
-    exit 2;
+if($Volume){
+    if($matching_volumes > 1){
+        print "CRITICAL: more than one volume matching this name";
+        exit 2;
+    }
 }
+
+my ($crit_msg, $warn_msg, $ok_msg);
 
 foreach my $vol (@result){
 
@@ -105,21 +116,47 @@ foreach my $vol (@result){
     my $percent = $vol_space->child_get_int("percentage-size-used");
 
     if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
-        print "CRITICAL: $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-        if($perf) {print "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
-        print "\n";
-         exit 2;
+        if($crit_msg){
+            $crit_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        } else {
+            $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        }
+        if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
     } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
-        print "WARNING: $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-        if($perf) {print "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
-        print "\n";
-        exit 1;
+        if($warn_msg){
+            $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        } else {
+            $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        }
+        if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
     } else {
-        print "OK: $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-        if($perf) {print "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
-        print "\n";
-        exit 0;
+        if($ok_msg){
+            $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        } else {
+            $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        }
+        if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
     }
+}
+
+if($crit_msg){
+    print "CRITICAL: $crit_msg\n";
+    if($warn_msg){
+        print "WARNING: $warn_msg\n";
+    }
+    if($ok_msg){
+        print "OK: $ok_msg\n";
+    }
+    exit 2;
+} elsif($warn_msg){
+    print "WARNING: $warn_msg\n";
+    if($ok_msg){
+        print "OK: $ok_msg\n";
+    }
+    exit 1;
+} else {
+    print "OK: $ok_msg\n";
+    exit 0;
 }
 
 __END__
@@ -135,7 +172,7 @@ check_cdot_volume - Check Volume Usage
 check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
            --password PASSWORD --size-warning PERCENT_WARNING \
            --size-critical PERCENT_CRITICAL --inode-warning PERCENT_WARNING \
-           --inode-critical PERCENT_CRITICAL --volume VOLUME --perf
+           --inode-critical PERCENT_CRITICAL (--volume VOLUME) (--perf)
 
 =head1 DESCRIPTION
 
@@ -176,7 +213,7 @@ The Critical threshold
 
 =item --volume VOLUME
 
-The name of the Volume to check
+Optional: The name of the Volume to check
 
 =item --perf
 
