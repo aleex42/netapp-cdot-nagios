@@ -14,6 +14,9 @@ Plugins
     * check_cdot_aggr.pl
       Checks Aggregate Space Usage (also supports performance data)
 
+    * check_cdot_rebuild.pl
+      Checks Aggregate RAID status
+
     * check_cdot_disk.pl
       Checks Disk Healthiness
 
