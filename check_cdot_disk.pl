@@ -21,6 +21,7 @@ GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
+    'diskcount=i' => \my $Diskcount,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -52,6 +53,7 @@ my $disk_count = 0;
 my @disk_list;
 
 foreach my $disk (@result) {
+
     $disk_count++;
 
     my $owner = $disk->child_get("disk-ownership-info");
@@ -64,8 +66,11 @@ foreach my $disk (@result) {
 if (@disk_list) {
     print @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . "\n";
     exit 2;
-}
-else {
+} elsif(($Diskcount) && ($Diskcount ne $disk_count)){
+    my $diff = $Diskcount-$disk_count;
+    print "CRITICAL: $diff disk(s) missing\n";
+    exit 2;
+} else {
     print "All $disk_count disks OK\n";
     exit 0;
 }
