@@ -68,7 +68,7 @@ foreach my $aggr (@result){
             my $rg_reconstruct = $rg->child_get_string("is-reconstructing");
 
             if($rg_reconstruct eq "true"){
-                unless(grep($aggr_name, @failed_aggrs)){
+                unless(grep(/$aggr_name/, @failed_aggrs)){
                     push(@failed_aggrs, $aggr_name);
                 }
             }
