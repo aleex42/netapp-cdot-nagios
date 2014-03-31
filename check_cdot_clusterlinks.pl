@@ -85,22 +85,27 @@ my $cf_api = new NaElement('cf-status');
 my %failed_ics;
 
 foreach my $node (@node_result){
-    my $node_name = $node->child_get_string("node-name");
-    my $cf_api = new NaElement('cf-status');
-    $cf_api->child_add_string('node', $node_name);
-    my $cf_output = $s->invoke_elem($cf_api);
+    my $health = $node->child_get_string("is-node-healthy");
 
-    if ($cf_output->results_errno != 0) {
-        my $r = $cf_output->results_reason();
-        print "UNKNOWN: $r\n";
-        exit 3;
-    }
+    if($health eq "true"){
 
-    my $link_status = $cf_output->child_get_string("interconnect-links");
-    $link_status = (split(/[()]/, $link_status))[1];
+        my $node_name = $node->child_get_string("node-name");
+        my $cf_api = new NaElement('cf-status');
+        $cf_api->child_add_string('node', $node_name);
+        my $cf_output = $s->invoke_elem($cf_api);
 
-    if(grep(/down/, $link_status)){
-        $failed_ics{$node_name} = $link_status;
+        if ($cf_output->results_errno != 0) {
+            my $r = $cf_output->results_reason();
+            print "UNKNOWN: $r\n";
+            exit 3;
+        }
+
+        my $link_status = $cf_output->child_get_string("interconnect-links");
+        $link_status = (split(/[()]/, $link_status))[1];
+
+        if(grep(/down/, $link_status)){
+            $failed_ics{$node_name} = $link_status;
+        }
     }
 }
 
@@ -110,7 +115,7 @@ my $ics_count = %failed_ics;
 if(($failed_count != 0) || ( $ics_count != 0)){
     print "CRITICAL:";
     foreach (@failed_ports){
-        print "$_ down";
+        print "$_ down, ";
     }
     foreach (keys %failed_ics){
         print $failed_ics{$_};
