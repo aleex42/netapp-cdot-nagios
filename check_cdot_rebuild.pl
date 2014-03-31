@@ -78,7 +78,7 @@ foreach my $aggr (@result){
 
 if(@failed_aggrs){
     print "CRITICAL: aggregate(s) rebuilding: ";
-    print join(", ",@failed_aggrs . "\n");
+    print join(", ",@failed_aggrs);
     print "\n";
     exit 2;
 } else {
