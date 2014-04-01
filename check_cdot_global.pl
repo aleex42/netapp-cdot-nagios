@@ -74,13 +74,14 @@ given ($Plugin) {
                     $failed_node .= $node_name;
                 }        
             }
-            if ($sum_failed_power) {
-                print "$sum_failed_power failed power supply(s)\n";
-                exit 2;
-            } else {
-                print "No failed power supplys\n";
-                exit 0;
-            }
+        }
+
+        if ($sum_failed_power) {
+            print "$sum_failed_power failed power supply(s): $failed_node\n";
+            exit 2;
+        } else {
+            print "No failed power supplys\n";
+            exit 0;
         }
     }
 
@@ -99,13 +100,14 @@ given ($Plugin) {
                     $failed_node .= $node_name;
                 }
             }
-            if ($sum_failed_fan) {
-                print "$sum_failed_fan failed fan(s) ($failed_node)\n";
-                exit 2;
-            } else {
-                print "No failed fans\n";
-                exit 0;
-            }
+        }
+
+        if ($sum_failed_fan) {
+            print "$sum_failed_fan failed fan(s): $failed_node\n";
+            exit 2;
+        } else {
+            print "No failed fans\n";
+            exit 0;
         }
     }
 
@@ -125,7 +127,7 @@ given ($Plugin) {
             }
         }
         if ($sum_failed_nvram) {
-            print "$sum_failed_nvram failed nvram(s) ($failed_node)\n";
+            print "$sum_failed_nvram failed nvram(s): $failed_node\n";
             exit 2;
         } else {
             print "No failed nvram\n";
@@ -148,8 +150,9 @@ given ($Plugin) {
                 }
             }
         }
+
         if ($sum_failed_temp) {
-            print "Temperature Overheating ($failed_node)\n";
+            print "Temperature Overheating: $failed_node\n";
             exit 2;
         } else {
             print "Temperature OK\n";
@@ -174,7 +177,7 @@ given ($Plugin) {
             }
         }
         if ($sum_failed_health){
-            print "Health Status Critical ($failed_node)\n";
+            print "Health Status Critical: $failed_node\n";
             exit 2;
         } else {
             print "Health Status OK\n";
