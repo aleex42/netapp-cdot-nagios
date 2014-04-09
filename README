@@ -47,6 +47,9 @@ Plugins
     * check_cdot_clusterlinks.pl
       Checks HA-Interconnects and Cluster Interfaces
 
+    * check_cdot_interfaces.pl
+      Checks Interface Group Status
+
 Examples
 --------
 
