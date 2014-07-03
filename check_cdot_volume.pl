@@ -71,6 +71,7 @@ if($Volume){
     $xi5->child_add($xi6);
     $xi6->child_add_string('name',$Volume);
 }
+$api->child_add_string('max-records','1000000');
 
 my $output = $s->invoke_elem($api);
 
