@@ -104,40 +104,44 @@ my ($crit_msg, $warn_msg, $ok_msg);
 foreach my $vol (@result){
 
     my $inode_info = $vol->child_get("volume-inode-attributes");
-    my $inode_used = $inode_info->child_get_int("files-used");
-    my $inode_total = $inode_info->child_get_int("files-total");
+    
+    if($inode_info){
 
-    my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
-    
-    my $vol_info = $vol->child_get("volume-id-attributes");
-    my $vol_name = $vol_info->child_get_string("name");
-    
-    my $vol_space = $vol->child_get("volume-space-attributes");
-    
-    my $percent = $vol_space->child_get_int("percentage-size-used");
+        my $inode_used = $inode_info->child_get_int("files-used");
+        my $inode_total = $inode_info->child_get_int("files-total");
 
-    if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
-        if($crit_msg){
-            $crit_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+        my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
+    
+        my $vol_info = $vol->child_get("volume-id-attributes");
+        my $vol_name = $vol_info->child_get_string("name");
+    
+        my $vol_space = $vol->child_get("volume-space-attributes");
+    
+        my $percent = $vol_space->child_get_int("percentage-size-used");
+
+        if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
+            if($crit_msg){
+                $crit_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+            } else {
+                $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+            }
+            if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
+        } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
+            if($warn_msg){
+                $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+            } else {
+                $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+            }
+            if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
         } else {
-            $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+            if($ok_msg){
+                $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+            } else {
+                $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+            }
+            if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
         }
-        if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
-    } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
-        if($warn_msg){
-            $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-        } else {
-            $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-        }
-        if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
-    } else {
-        if($ok_msg){
-            $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-        } else {
-            $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-        }
-        if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
-    }
+    } 
 }
 
 if($crit_msg){
@@ -155,9 +159,12 @@ if($crit_msg){
         print "OK: $ok_msg\n";
     }
     exit 1;
-} else {
+} elsif($ok_msg){
     print "OK: $ok_msg\n";
     exit 0;
+} else {
+    print "WARNING: no online volume found\n";
+    exit 1;
 }
 
 __END__
@@ -232,7 +239,7 @@ to see this Documentation
 
 3 on Unknown Error
 2 if Critical Threshold has been reached
-1 if Warning Threshold has been reached
+1 if Warning Threshold has been reached or any problem occured
 0 if everything is ok
 
 =head1 AUTHORS
