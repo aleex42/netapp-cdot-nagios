@@ -78,7 +78,7 @@ foreach my $snap (@result){
     }
 
     if(defined($lag) && ($lag >= $LagOpt)){
-				unless($failed_names{$dest_vol} || $status == "transferring"){
+				unless($failed_names{$dest_vol} || $status eq "transferring"){
 					$failed_names{$dest_vol} = [ $healthy, $lag ];						
 					$snapmirror_failed++;
         }
