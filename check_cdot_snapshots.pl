@@ -15,6 +15,7 @@ use NaElement;
 use strict;
 use warnings;
 use Getopt::Long;
+use Data::Dumper;
 
 GetOptions(
     'hostname=s' => \my $Hostname,
@@ -31,39 +32,59 @@ Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 
+my @old_snapshots;
+my $now = time;
+
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $snap_output = $s->invoke("snapshot-get-iter");
+my @snapmirrors = snapmirror_volumes();
 
-if ($snap_output->results_errno != 0) {
-    my $r = $snap_output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
+my $snap_iterator = NaElement->new("snapshot-get-iter");
+my $tag_elem = NaElement->new("tag");
+$snap_iterator->child_add($tag_elem);
 
-my $snapshots = $snap_output->child_get("attributes-list");
+my $next = "";
 
-unless($snapshots){
-    print "OK - No snapshots\n";
-    exit 0;
-}
+while(defined($next)){
+        unless($next eq ""){
+            $tag_elem->set_content($next);    
+        }
 
-my @snap_result = $snapshots->children_get();
+        $snap_iterator->child_add_string("max-records", 5000);
+        my $snap_output = $s->invoke_elem($snap_iterator);
 
-my $now = time;
-my @old_snapshots;
-foreach my $snap (@snap_result){
+        if ($snap_output->results_errno != 0) {
+            my $r = $snap_output->results_reason();
+            print "UNKNOWN: $r\n";
+            exit 3;
+        }
 
-    my $snap_time = $snap->child_get_string("access-time");
-    my $age = $now - $snap_time;
-    if($age >= 7776000){
-        my $snap_name = $snap->child_get_string("name");
-        my $vol_name  = $snap->child_get_string("volume");
-        push @old_snapshots, "$vol_name/$snap_name";
-    }
+        my @snapshots = $snap_output->child_get("attributes-list")->children_get();
+
+        unless(@snapshots){
+            print "OK - No snapshots\n";
+            exit 0;
+        }
+
+        foreach my $snap (@snapshots){
+
+            my $vol_name = $snap->child_get_string("volume");
+
+            unless(grep(/$vol_name/, @snapmirrors)){
+
+                my $snap_time = $snap->child_get_string("access-time");
+                my $age = $now - $snap_time;
+
+                if($age >= 7776000){
+                    my $snap_name  = $snap->child_get_string("name");
+                    push @old_snapshots, "$vol_name/$snap_name";
+                }
+            }
+        }
+        $next = $snap_output->child_get_string("next-tag");
 }
 
 if (@old_snapshots) {
@@ -76,6 +97,43 @@ else {
     exit 0;
 }
 
+sub snapmirror_volumes {
+
+    my @volumes;
+
+    my $snapmirror_iterator = NaElement->new("snapmirror-get-iter");
+    my $snapmirror_tag_elem = NaElement->new("tag");
+    $snapmirror_iterator->child_add($snapmirror_tag_elem);
+
+    my $snapmirror_next_tag = "";
+
+    while(defined($snapmirror_next_tag)){
+        unless($snapmirror_next_tag eq ""){
+            $snapmirror_tag_elem->set_content($snapmirror_next_tag);
+        }
+
+        $snapmirror_iterator->child_add_string("max-records", 5000);
+        my $snapmirror_output = $s->invoke_elem($snapmirror_iterator);
+
+        if ($snapmirror_output->results_errno != 0) {
+            my $r = $snapmirror_output->results_reason();
+            print "UNKNOWN: $r\n";
+            exit 3;
+        }
+
+        my @snap_relations = $snapmirror_output->child_get("attributes-list")->children_get();
+
+        if(@snap_relations){
+
+            foreach my $mirror (@snap_relations){
+                my $dest_vol = $mirror->child_get_string("destination-volume");
+                push(@volumes,$dest_vol);
+            }
+        }
+        $snapmirror_next_tag = $snapmirror_output->child_get_string("next-tag");
+    }
+    return @volumes;
+}
 __END__
 
 =encoding utf8
