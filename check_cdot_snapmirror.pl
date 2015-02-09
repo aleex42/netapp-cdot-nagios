@@ -39,51 +39,64 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $output = $s->invoke("snapmirror-get-iter");
+my $snap_iterator = NaElement->new("snapmirror-get-iter");
+my $tag_elem = NaElement->new("tag");
+$snap_iterator->child_add($tag_elem);
 
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $snapmirror_failed = 0;
-my $snapmirror_ok = 0;
-
-my $snapmirrors = $output->child_get("attributes-list");
-
-unless($snapmirrors){
-    print "OK - no snapmirrors\n";
-    exit 0;
-}
-
-my @result = $snapmirrors->children_get();
-
+my $next = "";
+my $snapmirror_failed;
+my $snapmirror_ok;
 my %failed_names;
 
-foreach my $snap (@result){
-
-    my $status = $snap->child_get_string("relationship-status");
-    my $healthy = $snap->child_get_string("is-healthy");
-    my $lag = $snap->child_get_string("lag-time");
-    my $dest_vol = $snap->child_get_string("destination-volume");
-    my $current_transfer = $snap->child_get_string("current-transfer-type");
-
-    if(($healthy eq "false") && ($current_transfer ne "initialize")){
-				$failed_names{$dest_vol} = [ $healthy, $lag ];
-        $snapmirror_failed++;
-    }
-    else {
-        $snapmirror_ok++;
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
 
-    if(defined($lag) && ($lag >= $LagOpt)){
-				unless($failed_names{$dest_vol} || $status eq "transferring"){
-					$failed_names{$dest_vol} = [ $healthy, $lag ];						
-					$snapmirror_failed++;
+    $snap_iterator->child_add_string("max-records", 100);
+    my $snap_output = $s->invoke_elem($snap_iterator);
+
+    if ($snap_output->results_errno != 0) {
+        my $r = $snap_output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
+
+    my @snapmirrors = $snap_output->child_get("attributes-list")->children_get();
+
+    unless(@snapmirrors){
+        print "OK - No snapshots\n";
+        exit 0;
+    }
+
+    foreach my $snap (@snapmirrors){
+
+        my $status = $snap->child_get_string("relationship-status");
+        my $healthy = $snap->child_get_string("is-healthy");
+        my $lag = $snap->child_get_string("lag-time");
+        my $dest_vol = $snap->child_get_string("destination-volume");
+        my $current_transfer = $snap->child_get_string("current-transfer-type");
+
+        if(($healthy eq "false") && (! $current_transfer)){
+            $failed_names{$dest_vol} = [ $healthy, $lag ];
+            $snapmirror_failed++;
+        } elsif (($healthy eq "false") && ($current_transfer ne "intialize")){
+            $failed_names{$dest_vol} = [ $healthy, $lag ];
+            $snapmirror_failed++;    
+        } else {
+            $snapmirror_ok++;
         }
-    } 
+
+        if(defined($lag) && ($lag >= $LagOpt)){
+            unless($failed_names{$dest_vol} || $status eq "transferring"){
+                $failed_names{$dest_vol} = [ $healthy, $lag ];						
+                $snapmirror_failed++;
+            }
+        } 
+    }
+    $next = $snap_output->child_get_string("next-tag");
 }
+
 
 if ($snapmirror_failed) {
 	print "CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok\n";
