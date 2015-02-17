@@ -62,12 +62,14 @@ while(defined($next)){
         exit 3;
     }
 
-    my @snapmirrors = $snap_output->child_get("attributes-list")->children_get();
+	my $num_records = $snap_output->child_get_string("num-records");
 
-    unless(@snapmirrors){
-        print "OK - No snapshots\n";
-        exit 0;
-    }
+	if($num_records eq 0){
+		print "OK - No snapmirrors\n";
+		exit 0;
+	}
+
+    my @snapmirrors = $snap_output->child_get("attributes-list")->children_get();
 
     foreach my $snap (@snapmirrors){
 
