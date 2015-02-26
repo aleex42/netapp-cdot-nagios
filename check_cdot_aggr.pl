@@ -16,6 +16,7 @@ use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
 use NaServer;
 use NaElement;
 use Getopt::Long;
+use Data::Dumper;
 
 GetOptions(
     'hostname=s' => \my $Hostname,
@@ -23,6 +24,7 @@ GetOptions(
     'password=s' => \my $Password,
     'warning=i'  => \my $Warning,
     'critical=i' => \my $Critical,
+    'aggr=s'     => \my $Aggr,
     'perf'     => \my $perf,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -37,49 +39,85 @@ Error('Option --password needed!') unless $Password;
 Error('Option --warning needed!')  unless $Warning;
 Error('Option --critical needed!') unless $Critical;
 
-my $s = NaServer->new( $Hostname, 1, 3 );
-$s->set_transport_type("HTTPS");
-$s->set_style("LOGIN");
-$s->set_admin_user( $Username, $Password );
-
-my $output = $s->invoke("aggr-get-iter");
-
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
 my $perfmsg;
 my $message;
 my $critical = 0;
 my $warning = 0;
 
-my $aggrs = $output->child_get("attributes-list");
-my @result = $aggrs->children_get();
+my $s = NaServer->new( $Hostname, 1, 3 );
+$s->set_transport_type("HTTPS");
+$s->set_style("LOGIN");
+$s->set_admin_user( $Username, $Password );
 
-foreach my $aggr (@result){
+my $iterator = NaElement->new("aggr-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
 
-    my $aggr_name = $aggr->child_get_string("aggregate-name");
-    my $space = $aggr->child_get("aggr-space-attributes");
-    my $percent = $space->child_get_int("percent-used-capacity");
+my $xi = new NaElement('desired-attributes');
+$iterator->child_add($xi);
+my $xi1 = new NaElement('aggr-attributes');
+$xi->child_add($xi1);
+$xi1->child_add_string('aggregate-name','<aggregate-name>');
+my $xi2 = new NaElement('aggr-space-attributes');
+$xi1->child_add($xi2);
+$xi2->child_add_string('percent-used-capacity','<percent-used-capacity>');
+$xi2->child_add_string('size-available','<size-available>');
+$xi2->child_add_string('size-total','<size-total>');
+$xi2->child_add_string('size-used','<size-used>');
+my $xi3 = new NaElement('query');
+$iterator->child_add($xi3);
+my $xi4 = new NaElement('aggr-attributes');
+$xi3->child_add($xi4);
+if($Aggr){
+    $xi4->child_add_string('aggregate-name',$Aggr);
+}
+my $xi5 = new NaElement('query');
+$iterator->child_add($xi5);
 
-    $critical++ if $percent >= $Critical;
-    $warning++  if $percent >= $Warning;
+my $next = "";
 
-    if ($message) {
-        $message .= ", " . $aggr_name . " (" . $percent . "%)";
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
-    else {
-        $message .= $aggr_name . " (" . $percent . "%)";
-    }   
 
-    if ($perf) {
-        $perfmsg .= " $aggr_name=$percent%;$Warning;$Critical";
+    $iterator->child_add_string("max-records", 100);
+    my $output = $s->invoke_elem($iterator);
+
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
     }
-    else {
-        $perfmsg .= "$aggr_name=$percent%;$Warning;$Critical";
-    }   
+
+    my $aggrs = $output->child_get("attributes-list");
+    my @result = $aggrs->children_get();
+
+    foreach my $aggr (@result){
+
+        my $aggr_name = $aggr->child_get_string("aggregate-name");
+        my $space = $aggr->child_get("aggr-space-attributes");
+        my $percent = $space->child_get_int("percent-used-capacity");
+
+        $critical++ if $percent >= $Critical;
+        $warning++  if $percent >= $Warning;
+
+        if ($message) {
+            $message .= ", " . $aggr_name . " (" . $percent . "%)";
+        }
+        else {
+            $message .= $aggr_name . " (" . $percent . "%)";
+        }   
+
+        if ($perf) {
+            $perfmsg .= " $aggr_name=$percent%;$Warning;$Critical";
+        }
+        else {
+            $perfmsg .= "$aggr_name=$percent%;$Warning;$Critical";
+        }   
+    }
+
+    $next = $output->child_get_string("next-tag");
 }
 
 if($critical > 0){
@@ -111,7 +149,7 @@ check_cdot_aggr - Check Aggregate real Space Usage
 
 check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
            --password PASSWORD --warning PERCENT_WARNING \
-           --critical PERCENT_CRITICAL --perf
+           --critical PERCENT_CRITICAL (--perf) (--aggr AGGR)
 
 =head1 DESCRIPTION
 
@@ -146,6 +184,10 @@ The Critical threshold
 
 Flag for performance data output
 
+=item --aggr
+
+Check only specific aggregate
+
 =item -help
 
 =item -?
@@ -166,3 +208,5 @@ to see this Documentation
  Alexander Krogloth <git at krogloth.de>
  Stelios Gikas <sgikas at demokrit.de>
  Stefan Grosser <sgr at firstframe.net>
+ Stephan Lang <stephan.lang at acp.at>
+

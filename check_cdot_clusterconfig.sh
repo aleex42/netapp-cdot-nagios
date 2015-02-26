@@ -15,7 +15,7 @@ USERNAME=$2
 NODES=$(ssh $USERNAME@$HOSTNAME "node show" | awk '$0 ~ "entries were displayed" { print $1 }')
 
 VLAN_DIFF=$(ssh $USERNAME@$HOSTNAME "network port vlan show -fields vlan-name" | awk '{ print $2 }' | grep ^a0a | sort | uniq -u)
-FAILOVER_DIFF=$(ssh $USERNAME@$HOSTNAME "network interface failover-groups show -fields targets" | awk -F ',' 'NF != '$NODES' && $1 ~ "(failover_|([0-9]{1,3}.){4})" { print $0}')
+FAILOVER_DIFF=$(ssh $USERNAME@$HOSTNAME "network interface failover-groups show -fields targets" | awk -F ',' 'NF != '$NODES' && $1 !~ "[0-9]_[0-9]" && $1 ~ "(failover_|([0-9]{1,3}.){4})" { print $0}')
 
 if [ -n "$VLAN_DIFF" ] || [ -n "$FAILOVER_DIFF" ]; then {
 
