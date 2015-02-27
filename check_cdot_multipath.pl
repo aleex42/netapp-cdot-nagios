@@ -38,37 +38,49 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $output = $s->invoke("storage-disk-get-iter");
+my $iterator = NaElement->new("storage-disk-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
 
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $heads = $output->child_get("attributes-list");
-my @result = $heads->children_get();
-
+my $next = "";
 my @failed_disks;
-foreach my $disk (@result){
 
-    my $paths = $disk->child_get("disk-paths");
-    my $path_count = $paths->children_get("disk-path-info");
-    my $disk_name = $disk->child_get_string("disk-name");
-
-    if ($path_count ne "4"){
-        my @disk_name = split(/:/,$disk_name);
-        push @failed_disks, $disk_name[1];
-
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
 
+    $iterator->child_add_string("max-records", 100);
+    my $output = $s->invoke_elem($iterator);
+
+	if ($output->results_errno != 0) {
+	    my $r = $output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+	
+	my $heads = $output->child_get("attributes-list");
+	my @result = $heads->children_get();
+	
+	foreach my $disk (@result){
+	
+	    my $paths = $disk->child_get("disk-paths");
+	    my $path_count = $paths->children_get("disk-path-info");
+	    my $disk_name = $disk->child_get_string("disk-name");
+
+	    if ($path_count ne "4"){
+	        my @disk_name = split(/:/,$disk_name);
+	        push @failed_disks, $disk_name[1];
+		}
+	}
+	$next = $output->child_get_string("next-tag");
 }
 
 if (@failed_disks) {
     print 'CRITICAL: disk(s) not multipath: ' . join( ', ', @failed_disks ) . "\n";
     exit 2;
 } else {
-    print "All disks multipath\n";
+    print "OK: All disks multipath\n";
     exit 0;
 }
 
