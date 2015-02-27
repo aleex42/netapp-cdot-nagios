@@ -42,14 +42,19 @@ Error('Option --size-critical needed!') unless $SizeCritical;
 Error('Option --inode-warning needed!')  unless $InodeWarning;
 Error('Option --inode-critical needed!') unless $InodeCritical;
 
+my ($crit_msg, $warn_msg, $ok_msg);
+
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $api = new NaElement('volume-get-iter');
+my $iterator = NaElement->new("volume-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
+
 my $xi = new NaElement('desired-attributes');
-$api->child_add($xi);
+$iterator->child_add($xi);
 my $xi1 = new NaElement('volume-attributes');
 $xi->child_add($xi1);
 my $xi2 = new NaElement('volume-id-attributes');
@@ -63,7 +68,7 @@ $xi1->child_add($xi13);
 $xi13->child_add_string('files-total','<files-total>');
 $xi13->child_add_string('files-used','<files-used>');
 my $xi4 = new NaElement('query');
-$api->child_add($xi4);
+$iterator->child_add($xi4);
 my $xi5 = new NaElement('volume-attributes');
 $xi4->child_add($xi5);
 if($Volume){
@@ -71,77 +76,84 @@ if($Volume){
     $xi5->child_add($xi6);
     $xi6->child_add_string('name',$Volume);
 }
-$api->child_add_string('max-records','1000000');
 
-my $output = $s->invoke_elem($api);
+my $next = "";
 
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $volumes = $output->child_get("attributes-list");
-
-unless($volumes){
-    print "CRITICAL: no volume matching this name\n";
-    exit 2;
-}
-
-my @result = $volumes->children_get();
-
-my $matching_volumes = @result;
-
-if($Volume){
-    if($matching_volumes > 1){
-        print "CRITICAL: more than one volume matching this name";
-        exit 2;
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
-}
 
-my ($crit_msg, $warn_msg, $ok_msg);
+    $iterator->child_add_string("max-records", 100);
+    my $output = $s->invoke_elem($iterator);
 
-foreach my $vol (@result){
-
-    my $inode_info = $vol->child_get("volume-inode-attributes");
-    
-    if($inode_info){
-
-        my $inode_used = $inode_info->child_get_int("files-used");
-        my $inode_total = $inode_info->child_get_int("files-total");
-
-        my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
-    
-        my $vol_info = $vol->child_get("volume-id-attributes");
-        my $vol_name = $vol_info->child_get_string("name");
-    
-        my $vol_space = $vol->child_get("volume-space-attributes");
-    
-        my $percent = $vol_space->child_get_int("percentage-size-used");
-
-        if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
-            if($crit_msg){
-                $crit_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-            } else {
-                $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-            }
-            if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
-        } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
-            if($warn_msg){
-                $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-            } else {
-                $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-            }
-            if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
-        } else {
-            if($ok_msg){
-                $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-            } else {
-                $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-            }
-            if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
-        }
-    } 
+	if ($output->results_errno != 0) {
+	    my $r = $output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+	
+	my $volumes = $output->child_get("attributes-list");
+	
+	unless($volumes){
+	    print "CRITICAL: no volume matching this name\n";
+	    exit 2;
+	}
+	
+	my @result = $volumes->children_get();
+	
+	my $matching_volumes = @result;
+	
+	if($Volume){
+	    if($matching_volumes > 1){
+	        print "CRITICAL: more than one volume matching this name";
+	        exit 2;
+	    }
+	}
+	
+	foreach my $vol (@result){
+	
+	    my $inode_info = $vol->child_get("volume-inode-attributes");
+	    
+	    if($inode_info){
+	
+	        my $inode_used = $inode_info->child_get_int("files-used");
+	        my $inode_total = $inode_info->child_get_int("files-total");
+	
+	        my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
+	    
+	        my $vol_info = $vol->child_get("volume-id-attributes");
+	        my $vol_name = $vol_info->child_get_string("name");
+	    
+	        my $vol_space = $vol->child_get("volume-space-attributes");
+	    
+	        my $percent = $vol_space->child_get_int("percentage-size-used");
+	
+	        if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
+	            if($crit_msg){
+	                $crit_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+	            } else {
+	                $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+	            }
+	            if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
+	        } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
+	            if($warn_msg){
+	                $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+	            } else {
+	                $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+	            }
+	            if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+	        } else {
+	            if($ok_msg){
+	                $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
+	            } else {
+	                $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
+	            }
+	            if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+	        }
+	    } 
+	}
+	$next = $output->child_get_string("next-tag");
 }
 
 if($crit_msg){
