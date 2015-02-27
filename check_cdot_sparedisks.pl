@@ -37,39 +37,56 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $output = $s->invoke("storage-disk-get-iter");
+my $iterator = NaElement->new("storage-disk-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
 
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
+my $next = "";
+my ($not_zeroed, $not_assigned);
 
-my $disks = $output->child_get("attributes-list");
-my @result = $disks->children_get();
+while(defined($next)){
+	unless($next eq ""){
+		$tag_elem->set_content($next);    
+	}
 
-my $not_zeroed;
+	$iterator->child_add_string("max-records", 100);
+	my $output = $s->invoke_elem($iterator);
 
-foreach my $disk (@result) {
+	if ($output->results_errno != 0) {
+		my $r = $output->results_reason();
+		print "UNKNOWN: $r\n";
+		exit 3;
+	}
 
-    my $raid_info = $disk->child_get("disk-raid-info");
-    my $type = $raid_info->child_get_string("container-type");
+	my $disks = $output->child_get("attributes-list");
+	my @result = $disks->children_get();
 
-    if($type eq "spare"){
-        my $spare_info = $raid_info->child_get("disk-spare-info");
-        my $zeroed = $spare_info->child_get_string('is-zeroed');
+	foreach my $disk (@result) {
 
-        if($zeroed eq "false"){
-            $not_zeroed++;
-        }
-    }
+		my $raid_info = $disk->child_get("disk-raid-info");
+		my $type = $raid_info->child_get_string("container-type");
+
+		if($type eq "spare"){
+			my $spare_info = $raid_info->child_get("disk-spare-info");
+			my $zeroed = $spare_info->child_get_string('is-zeroed');
+
+			if($zeroed eq "false"){
+				$not_zeroed++;
+			}
+		} elsif($type eq "unassigned"){
+			$not_assigned++;
+		}
+	}
+    $next = $output->child_get_string("next-tag");
 }
 
 if ($not_zeroed){
-    print "$not_zeroed spare disk(s) not zeroed\n";
+    print "CRITICAL: $not_zeroed spare disk(s) not zeroed\n";
     exit 2;
-}
-else {
+} elsif($not_assigned){
+	print "CRITICAL: $not_assigned disk(s) not assigned\n";
+	exit 2;
+} else {
     print "All spare disks zeroed\n";
     exit 0;
 }
@@ -80,7 +97,7 @@ __END__
 
 =head1 NAME
 
-check_cdot_spare_disk - Checks Spare Disks
+check_cdot_spare_disk - Checks Spare and Unassigned Disks
 
 =head1 SYNOPSIS
 
@@ -89,7 +106,7 @@ check_cdot_sparedisk.pl --hostname HOSTNAME \
 
 =head1 DESCRIPTION
 
-Checks if there are some nonzeroed disks
+Checks if there are some nonzeroed or not assigned disks
 
 =head1 OPTIONS
 
