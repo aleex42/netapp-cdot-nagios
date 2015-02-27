@@ -37,43 +37,56 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $output = $s->invoke("aggr-get-iter");
+my $iterator = NaElement->new("aggr-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
 
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $aggrs = $output->child_get("attributes-list");
-my @result = $aggrs->children_get();
-
+my $next = "";
 my @failed_aggrs;
 
-foreach my $aggr (@result){
-
-    my $aggr_name = $aggr->child_get_string("aggregate-name");
-
-    my $raid = $aggr->child_get("aggr-raid-attributes");
-    my $plex_list=$raid->child_get("plexes");
-    my @plexes = $plex_list->children_get();
-
-    foreach my $plex (@plexes){
-
-        my $rg_list = $plex->child_get("raidgroups");
-        my @rgs = $rg_list->children_get();
-
-        foreach my $rg (@rgs){
-
-            my $rg_reconstruct = $rg->child_get_string("is-reconstructing");
-
-            if($rg_reconstruct eq "true"){
-                unless(grep(/$aggr_name/, @failed_aggrs)){
-                    push(@failed_aggrs, $aggr_name);
-                }
-            }
-        }
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
+
+    $iterator->child_add_string("max-records", 100);
+    my $output = $s->invoke_elem($iterator);
+
+	if ($output->results_errno != 0) {
+	    my $r = $output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+	
+	my $aggrs = $output->child_get("attributes-list");
+	my @result = $aggrs->children_get();
+	
+	foreach my $aggr (@result){
+	
+	    my $aggr_name = $aggr->child_get_string("aggregate-name");
+	
+	    my $raid = $aggr->child_get("aggr-raid-attributes");
+	    my $plex_list=$raid->child_get("plexes");
+	    my @plexes = $plex_list->children_get();
+	
+	    foreach my $plex (@plexes){
+	
+	        my $rg_list = $plex->child_get("raidgroups");
+	        my @rgs = $rg_list->children_get();
+	
+	        foreach my $rg (@rgs){
+	
+	            my $rg_reconstruct = $rg->child_get_string("is-reconstructing");
+	
+	            if($rg_reconstruct eq "true"){
+	                unless(grep(/$aggr_name/, @failed_aggrs)){
+	                    push(@failed_aggrs, $aggr_name);
+	                }
+	            }
+	        }
+	    }
+	}
+	$next = $output->child_get_string("next-tag");
 }
 
 if(@failed_aggrs){
