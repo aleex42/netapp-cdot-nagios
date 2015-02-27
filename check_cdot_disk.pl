@@ -38,40 +38,53 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $output = $s->invoke("storage-disk-get-iter");
+my $iterator = NaElement->new("storage-disk-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
 
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $disks = $output->child_get("attributes-list");
-my @result = $disks->children_get();
-
+my $next = "";
 my $disk_count = 0;
 my @disk_list;
 
-foreach my $disk (@result) {
-
-    $disk_count++;
-
-    my $owner = $disk->child_get("disk-ownership-info");
-    my $diskstate = $owner->child_get_string('is-failed');
-    if ( $diskstate eq 'true' ) {
-        push @disk_list, $disk->child_get_string('disk-name');
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
+
+    $iterator->child_add_string("max-records", 100);
+    my $output = $s->invoke_elem($iterator);
+
+	if ($output->results_errno != 0) {
+    	my $r = $output->results_reason();
+    	print "UNKNOWN: $r\n";
+    	exit 3;
+	}
+	
+	my $disks = $output->child_get("attributes-list");
+	my @result = $disks->children_get();
+	
+	foreach my $disk (@result) {
+	
+	    $disk_count++;
+	
+	    my $owner = $disk->child_get("disk-ownership-info");
+	    my $diskstate = $owner->child_get_string('is-failed');
+	    if ( $diskstate eq 'true' ) {
+	        push @disk_list, $disk->child_get_string('disk-name');
+	    }
+	}
+	$next = $output->child_get_string("next-tag");
 }
 
 if (@disk_list) {
-    print @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . "\n";
+    print "CRITICAL" . @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . "\n";
     exit 2;
 } elsif(($Diskcount) && ($Diskcount ne $disk_count)){
     my $diff = $Diskcount-$disk_count;
     print "CRITICAL: $diff disk(s) missing\n";
     exit 2;
 } else {
-    print "All $disk_count disks OK\n";
+    print "OK: All $disk_count disks OK\n";
     exit 0;
 }
 
