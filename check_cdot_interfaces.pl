@@ -37,46 +37,46 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $lif_api = new NaElement('net-port-get-iter');
-$lif_api->child_add_string('max-records','1000000');
+my $iterator = NaElement->new("net-port-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
 
-my $lif_output = $s->invoke_elem($lif_api);
-
-if ($lif_output->results_errno != 0) {
-    my $r = $lif_output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $lifs = $lif_output->child_get("attributes-list");
-my @lif_result = $lifs->children_get();
-
+my $next = "";
 my @failed_ports;
 
-my $ifgrp_api = new NaElement('net-port-ifgrp-get');
-
-foreach my $lif (@lif_result){
-
-    my $type = $lif->child_get_string("port-type");
-
-    if($type eq "if_group"){
-
-        my $name = $lif->child_get_string("port");
-        my $node = $lif->child_get_string("node");
-        my $ifgrp_api = new NaElement('net-port-ifgrp-get');
-
-        $ifgrp_api->child_add_string('node',$node);
-        $ifgrp_api->child_add_string('ifgrp-name',$name);
-        
-        my $ifgrp_output = $s->invoke_elem($ifgrp_api);
-        my $attributes = $ifgrp_output->child_get("attributes");
-        my $ifgrp_info = $attributes->child_get("net-ifgrp-info");
-        my $state = $ifgrp_info->child_get_string("port-participation");
-
-        if($state ne "full"){
-            push(@failed_ports, "$node:$name");
-        }
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
+
+    $iterator->child_add_string("max-records", 100);
+    my $lif_output = $s->invoke_elem($iterator);
+
+	if ($lif_output->results_errno != 0) {
+	    my $r = $lif_output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+
+	my $lifs = $lif_output->child_get("attributes-list");
+	my @lif_result = $lifs->children_get();
+	
+	foreach my $lif (@lif_result){
+	
+	    my $type = $lif->child_get_string("port-type");
+
+	    if($type eq "if_group"){
+	
+	        my $name = $lif->child_get_string("port");
+	        my $node = $lif->child_get_string("node");
+	        my $state = $lif->child_get_string("link-status");
+	
+	        if($state ne "up"){
+	            push(@failed_ports, "$node:$name");
+	        }
+	    }
+	}
+	$next = $lif_output->child_get_string("next-tag");
 }
 
 my $failed_count = @failed_ports;
@@ -84,12 +84,12 @@ my $failed_count = @failed_ports;
 if($failed_count != 0){
     print "CRITICAL: ";
     foreach (@failed_ports){
-        print "$_ not fully active, ";
+        print "$_ not up, ";
     }
     print "\n";
     exit 2;
 } else {
-    print "OK: all ifgrps fully active\n";
+    print "OK: All IFGRP fully active\n";
     exit 0;
 }
 
