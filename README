@@ -33,7 +33,7 @@ Plugins
       Checks Snapshot Age
 
     * check_cdot_sparedisks.pl
-      Checks Sparedisk Status
+      Checks Sparedisk Status and unowned Disks
 
     * check_cdot_volume.pl
       Checks Space and Inode Usage of all or one specific Volume (also supports performance data)
