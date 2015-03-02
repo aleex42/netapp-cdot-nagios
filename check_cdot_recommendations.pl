@@ -42,9 +42,12 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $api = new NaElement('volume-get-iter');
+my $iterator = NaElement->new("volume-get-iter");
+my $tag_elem = NaElement->new("tag");
+$iterator->child_add($tag_elem);
+
 my $xi = new NaElement('desired-attributes');
-$api->child_add($xi);
+$iterator->child_add($xi);
 my $xi1 = new NaElement('volume-attributes');
 $xi->child_add($xi1);
 my $xi2 = new NaElement('volume-id-attributes');
@@ -55,100 +58,133 @@ my $xi13 = new NaElement('volume-qos-attributes');
 $xi1->child_add($xi13);
 my $xi14 = new NaElement('volume-state-attributes');
 $xi1->child_add($xi14);
-$api->child_add_string('max-records','1000000');
 
-my $output = $s->invoke_elem($api);
-
-if ($output->results_errno != 0) {
-    my $r = $output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $volumes = $output->child_get("attributes-list");
-my @result = $volumes->children_get();
-
+my $next = "";
 my @no_qos;
 my @no_guarantee;
 my @no_schedule = ();
 my @no_failover;
 
-foreach my $vol (@result){
-
-    my $vol_info = $vol->child_get("volume-id-attributes");
-    my $vol_name = $vol_info->child_get_string("name");
-    my $vol_type = $vol_info->child_get_string("type");
-
-    my $vol_state = $vol->child_get("volume-state-attributes");
-    if($vol_state){
-
-        my $state = $vol_state->child_get_string("state");
-
-        if($state && ($state eq "online")){
-
-            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp")){
-
-                my $space = $vol->child_get("volume-space-attributes");
-                my $qos = $vol->child_get("volume-qos-attributes");
-                my $guarantee = $space->child_get_string("space-guarantee");
-
-                unless($qos){
-                    push(@no_qos, $vol_name);
-                }
-
-                unless($guarantee eq "none"){
-                    push(@no_guarantee, $vol_name);
-                }
-            }
-        }
+while(defined($next)){
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
     }
+
+    $iterator->child_add_string("max-records", 100);
+    my $output = $s->invoke_elem($iterator);
+
+	if ($output->results_errno != 0) {
+	    my $r = $output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+	
+	my $volumes = $output->child_get("attributes-list");
+	my @result = $volumes->children_get();
+	
+	foreach my $vol (@result){
+	
+	    my $vol_info = $vol->child_get("volume-id-attributes");
+	    my $vol_name = $vol_info->child_get_string("name");
+	    my $vol_type = $vol_info->child_get_string("type");
+	
+	    my $vol_state = $vol->child_get("volume-state-attributes");
+	    if($vol_state){
+	
+	        my $state = $vol_state->child_get_string("state");
+	
+	        if($state && ($state eq "online")){
+	
+	            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp")){
+	
+	                my $space = $vol->child_get("volume-space-attributes");
+	                my $qos = $vol->child_get("volume-qos-attributes");
+	                my $guarantee = $space->child_get_string("space-guarantee");
+	
+	                unless($qos){
+	                    push(@no_qos, $vol_name);
+	                }
+	
+	                unless($guarantee eq "none"){
+	                    push(@no_guarantee, $vol_name);
+	                }
+	            }
+	        }
+	    }
+	}
+    $next = $output->child_get_string("next-tag");
 }
 
-my $snapmirror_output = $s->invoke("snapmirror-get-iter");
+my $snapmirror_iterator = NaElement->new("snapmirror-get-iter");
+my $snapmirror_tag_elem = NaElement->new("tag");
+$snapmirror_iterator->child_add($snapmirror_tag_elem);
 
-if ($snapmirror_output->results_errno != 0) {
-    my $r = $snapmirror_output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
+my $snapmirror_next = "";
 
-my $snapmirrors = $snapmirror_output->child_get("attributes-list");
-my @snapmirror_result = $snapmirrors->children_get();
-
-foreach my $snap (@snapmirror_result){
-    my $dest_vol = $snap->child_get_string("destination-volume");
-    my $schedule = $snap->child_get_string("schedule");
-
-    unless($schedule){
-        push(@no_schedule, $dest_vol);
+while(defined($snapmirror_next)){
+    unless($snapmirror_next eq ""){
+        $snapmirror_tag_elem->set_content($snapmirror_next);
     }
+
+    $snapmirror_iterator->child_add_string("max-records", 100);
+    my $snapmirror_output = $s->invoke_elem($snapmirror_iterator);
+
+	if ($snapmirror_output->results_errno != 0) {
+	    my $r = $snapmirror_output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+	
+	my $snapmirrors = $snapmirror_output->child_get("attributes-list");
+	my @snapmirror_result = $snapmirrors->children_get();
+	
+	foreach my $snap (@snapmirror_result){
+	    my $dest_vol = $snap->child_get_string("destination-volume");
+	    my $schedule = $snap->child_get_string("schedule");
+	
+	    unless($schedule){
+	        push(@no_schedule, $dest_vol);
+	    }
+	}
+    $snapmirror_next = $snapmirror_output->child_get_string("next-tag");
 }
 
-my $lif_api = new NaElement('net-interface-get-iter');
-$lif_api->child_add_string('max-records','1000000');
+my $lif_iterator = NaElement->new("net-interface-get-iter");
+my $lif_tag_elem = NaElement->new("tag");
+$lif_iterator->child_add($lif_tag_elem);
 
-my $lif_output = $s->invoke_elem($lif_api);
+my $lif_next = "";
 
-if ($lif_output->results_errno != 0) {
-    my $r = $lif_output->results_reason();
-    print "UNKNOWN: $r\n";
-    exit 3;
-}
-
-my $lifs = $lif_output->child_get("attributes-list");
-my @lif_result = $lifs->children_get();
-
-foreach my $lif (@lif_result){
-
-    my $lif_name = $lif->child_get_string("interface-name");
-    my $failover_group = $lif->child_get_string("failover-group");
-    my $role = $lif->child_get_string("role");
-
-    if($failover_group eq "system-defined"){
-        if(($role eq "data") || ($role eq "cluster-mgmt")){
-            push(@no_failover, $lif_name);
-        }
+while(defined($lif_next)){
+    unless($lif_next eq ""){
+        $lif_tag_elem->set_content($lif_next);
     }
+
+    $lif_iterator->child_add_string("max-records", 100);
+    my $lif_output = $s->invoke_elem($lif_iterator);
+
+	if ($lif_output->results_errno != 0) {
+	    my $r = $lif_output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+	
+	my $lifs = $lif_output->child_get("attributes-list");
+	my @lif_result = $lifs->children_get();
+	
+	foreach my $lif (@lif_result){
+	
+	    my $lif_name = $lif->child_get_string("interface-name");
+	    my $failover_group = $lif->child_get_string("failover-group");
+	    my $role = $lif->child_get_string("role");
+	
+		if(($failover_group) && ($failover_group eq "system-defined")){
+	        if(($role eq "data") || ($role eq "cluster-mgmt")){
+	            push(@no_failover, $lif_name);
+	        }
+	    }
+	}
+    $lif_next = $lif_output->child_get_string("next-tag");
 }
 
 my $qos_count = @no_qos;
@@ -158,7 +194,7 @@ my $failover_count = @no_failover;
 
 if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0)){
 
-    print "WARNING: not all recommendations are applied:\n";
+    print "WARNING: Not all recommendations are applied:\n";
 
     if($qos_count != 0){
         print "Vol without QOS:\n";
