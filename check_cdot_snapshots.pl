@@ -53,8 +53,6 @@ $xi->child_add($xi1);
 $xi1->child_add_string('name','name');
 $xi1->child_add_string('volume','volume');
 $xi1->child_add_string('access-time','access-time');
-my $xi4 = new NaElement('query');
-$snap_iterator->child_add($xi4);
 
 my $next = "";
 
@@ -63,7 +61,7 @@ while(defined($next)){
             $tag_elem->set_content($next);    
         }
 
-        $snap_iterator->child_add_string("max-records", 100);
+        $snap_iterator->child_add_string("max-records", 1000);
         my $snap_output = $s->invoke_elem($snap_iterator);
 
         if ($snap_output->results_errno != 0) {
@@ -82,15 +80,14 @@ while(defined($next)){
         foreach my $snap (@snapshots){
 
             my $vol_name = $snap->child_get_string("volume");
-
             my $snap_time = $snap->child_get_string("access-time");
             my $age = $now - $snap_time;
 
             if($age >= 7776000){
-#                unless(grep(/$vol_name/, @snapmirrors)){
+                unless(grep(/$vol_name/, @snapmirrors)){
                     my $snap_name  = $snap->child_get_string("name");
                     push @old_snapshots, "$vol_name/$snap_name";
-#                }
+                }
             }
         }
         $next = $snap_output->child_get_string("next-tag");
@@ -121,7 +118,7 @@ sub snapmirror_volumes {
             $snapmirror_tag_elem->set_content($snapmirror_next_tag);
         }
 
-        $snapmirror_iterator->child_add_string("max-records", 5000);
+        $snapmirror_iterator->child_add_string("max-records", 1000);
         my $snapmirror_output = $s->invoke_elem($snapmirror_iterator);
 
         if ($snapmirror_output->results_errno != 0) {
