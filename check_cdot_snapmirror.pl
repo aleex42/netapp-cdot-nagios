@@ -79,22 +79,24 @@ while(defined($next)){
 		my $dest_vol = $snap->child_get_string("destination-volume");
 		my $current_transfer = $snap->child_get_string("current-transfer-type");
 
-		if(($healthy eq "false") && (! $current_transfer)){
-			$failed_names{$dest_vol} = [ $healthy, $lag ];
-			$snapmirror_failed++;
-		} elsif (($healthy eq "false") && ($current_transfer ne "intialize")){
-			$failed_names{$dest_vol} = [ $healthy, $lag ];
-			$snapmirror_failed++;    
-		} else {
-			$snapmirror_ok++;
-		}
+		if($healthy eq "false"){
+            if(! $current_transfer){
+    			$failed_names{$dest_vol} = [ $healthy, $lag ];
+    			$snapmirror_failed++;
+    		} elsif ($status eq "transferring"){
+    			$snapmirror_ok++;
+    		}
+        } else {
+            $snapmirror_ok++;
+        }
 
-		if(defined($lag) && ($lag >= $LagOpt)){
-			unless($failed_names{$dest_vol} || $status eq "transferring"){
-				$failed_names{$dest_vol} = [ $healthy, $lag ];						
-				$snapmirror_failed++;
-			}
-		} 
+        if(defined($lag) && ($lag >= $LagOpt)){
+            unless($failed_names{$dest_vol} || $status eq "transferring"){
+                $failed_names{$dest_vol} = [ $healthy, $lag ];
+                $snapmirror_failed++;
+            }
+        }
+
 	}
 	$next = $snap_output->child_get_string("next-tag");
 }

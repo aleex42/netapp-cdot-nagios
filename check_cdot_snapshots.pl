@@ -87,10 +87,10 @@ while(defined($next)){
             my $age = $now - $snap_time;
 
             if($age >= 7776000){
-                unless(grep(/$vol_name/, @snapmirrors)){
+#                unless(grep(/$vol_name/, @snapmirrors)){
                     my $snap_name  = $snap->child_get_string("name");
                     push @old_snapshots, "$vol_name/$snap_name";
-                }
+#                }
             }
         }
         $next = $snap_output->child_get_string("next-tag");
