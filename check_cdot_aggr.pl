@@ -64,12 +64,8 @@ $xi2->child_add_string('percent-used-capacity','<percent-used-capacity>');
 $xi2->child_add_string('size-available','<size-available>');
 $xi2->child_add_string('size-total','<size-total>');
 $xi2->child_add_string('size-used','<size-used>');
-my $xi3 = new NaElement('query');
-$iterator->child_add($xi3);
-my $xi4 = new NaElement('aggr-attributes');
-$xi3->child_add($xi4);
 if($Aggr){
-    $xi4->child_add_string('aggregate-name',$Aggr);
+    $xi1->child_add_string('aggregate-name',$Aggr);
 }
 
 my $next = "";

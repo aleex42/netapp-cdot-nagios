@@ -67,14 +67,8 @@ my $xi13 = new NaElement('volume-inode-attributes');
 $xi1->child_add($xi13);
 $xi13->child_add_string('files-total','<files-total>');
 $xi13->child_add_string('files-used','<files-used>');
-my $xi4 = new NaElement('query');
-$iterator->child_add($xi4);
-my $xi5 = new NaElement('volume-attributes');
-$xi4->child_add($xi5);
 if($Volume){
-    my $xi6 = new NaElement('volume-id-attributes');
-    $xi5->child_add($xi6);
-    $xi6->child_add_string('name',$Volume);
+    $xi2->child_add_string('name',$Volume);
 }
 
 my $next = "";
