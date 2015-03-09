@@ -71,8 +71,6 @@ $xi3->child_add($xi4);
 if($Aggr){
     $xi4->child_add_string('aggregate-name',$Aggr);
 }
-my $xi5 = new NaElement('query');
-$iterator->child_add($xi5);
 
 my $next = "";
 
