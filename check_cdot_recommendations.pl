@@ -58,12 +58,15 @@ my $xi13 = new NaElement('volume-qos-attributes');
 $xi1->child_add($xi13);
 my $xi14 = new NaElement('volume-state-attributes');
 $xi1->child_add($xi14);
+my $xi4 = new NaElement('volume-snapshot-attributes');
+$xi1->child_add($xi4);
 
 my $next = "";
 my @no_qos;
 my @no_guarantee;
 my @no_schedule = ();
 my @no_failover;
+my @snap_policy;
 
 while(defined($next)){
     unless($next eq ""){
@@ -83,9 +86,18 @@ while(defined($next)){
 	my @result = $volumes->children_get();
 	
 	foreach my $vol (@result){
+        
+        my $snap_info = $vol->child_get("volume-snapshot-attributes");
+        my $policy = $snap_info->child_get_string("snapshot-policy");
+        my $vol_info = $vol->child_get("volume-id-attributes");
+        my $vol_name = $vol_info->child_get_string("name");
+
+        if($policy){
+            if($policy eq "default"){
+                push(@snap_policy, $vol_name);
+            }
+        }
 	
-	    my $vol_info = $vol->child_get("volume-id-attributes");
-	    my $vol_name = $vol_info->child_get_string("name");
 	    my $vol_type = $vol_info->child_get_string("type");
 	
 	    my $vol_state = $vol->child_get("volume-state-attributes");
@@ -191,8 +203,10 @@ my $qos_count = @no_qos;
 my $guarantee_count = @no_guarantee;
 my $schedule_count = @no_schedule;
 my $failover_count = @no_failover;
+my $policy_count = @snap_policy;
 
-if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0)){
+
+if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0) || ($policy_count != 0)){
 
     print "WARNING: Not all recommendations are applied:\n";
 
@@ -221,6 +235,12 @@ if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($f
     if($failover_count != 0){
         print "LIFs without failover-groups:\n";
         foreach(@no_failover){
+            print "-> " . $_ . "\n";
+        }
+    }
+    if($policy_count != 0){
+        print "Volumes with default snapshot policy:\n";
+        foreach(@snap_policy){
             print "-> " . $_ . "\n";
         }
     }
