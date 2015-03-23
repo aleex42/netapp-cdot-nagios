@@ -154,7 +154,7 @@ while(defined($snapmirror_next)){
 	    my $dest_vol = $snap->child_get_string("destination-volume");
 	    my $schedule = $snap->child_get_string("schedule");
 	
-	    unless($schedule){
+	    unless(($schedule =~ m/^hourly/) || ($schedule =~ m/^15min$/)){
 	        push(@no_schedule, $dest_vol);
 	    }
 	}
