@@ -107,7 +107,7 @@ while(defined($next)){
 	
 	        if($state && ($state eq "online")){
 	
-	            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp")){
+	            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp") || ($vol_name =~ m/^temp__/)){
 	
 	                my $space = $vol->child_get("volume-space-attributes");
 	                my $qos = $vol->child_get("volume-qos-attributes");
