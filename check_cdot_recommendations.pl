@@ -141,23 +141,25 @@ while(defined($snapmirror_next)){
     $snapmirror_iterator->child_add_string("max-records", 100);
     my $snapmirror_output = $s->invoke_elem($snapmirror_iterator);
 
-	if ($snapmirror_output->results_errno != 0) {
-	    my $r = $snapmirror_output->results_reason();
-	    print "UNKNOWN: $r\n";
-	    exit 3;
-	}
-	
-	my $snapmirrors = $snapmirror_output->child_get("attributes-list");
-	my @snapmirror_result = $snapmirrors->children_get();
-	
-	foreach my $snap (@snapmirror_result){
-	    my $dest_vol = $snap->child_get_string("destination-volume");
-	    my $schedule = $snap->child_get_string("schedule");
-	
-	    unless(($schedule =~ m/^hourly/) || ($schedule =~ m/^15min$/)){
-	        push(@no_schedule, $dest_vol);
-	    }
-	}
+    if ($snapmirror_output->results_errno != 0) {
+        my $r = $snapmirror_output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
+
+    my $snapmirrors = $snapmirror_output->child_get("attributes-list");
+    if($snapmirrors){
+        my @snapmirror_result = $snapmirrors->children_get();
+
+        foreach my $snap (@snapmirror_result){
+            my $dest_vol = $snap->child_get_string("destination-volume");
+            my $schedule = $snap->child_get_string("schedule");
+
+            unless(($schedule =~ m/^hourly/) || ($schedule =~ m/^15min$/)){
+                push(@no_schedule, $dest_vol);
+            }
+        }
+    }
     $snapmirror_next = $snapmirror_output->child_get_string("next-tag");
 }
 

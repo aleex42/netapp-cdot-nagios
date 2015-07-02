@@ -85,7 +85,7 @@ while(defined($next)){
                 my $snap_time = $snap->child_get_string("access-time");
                 my $age = $now - $snap_time;
 
-                if($age >= 7200){
+                if($age >= 172800){
                     push @old_snapshots, "$vol_name/$snap_name";
                 }
             }
