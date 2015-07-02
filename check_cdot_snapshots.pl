@@ -127,13 +127,15 @@ sub snapmirror_volumes {
             exit 3;
         }
 
-        my @snap_relations = $snapmirror_output->child_get("attributes-list")->children_get();
+        if($snapmirror_output->child_get("attributes-list")){
+            my @snap_relations = $snapmirror_output->child_get("attributes-list")->children_get();
 
-        if(@snap_relations){
+            if(@snap_relations){
 
-            foreach my $mirror (@snap_relations){
-                my $dest_vol = $mirror->child_get_string("destination-volume");
-                push(@volumes,$dest_vol);
+                foreach my $mirror (@snap_relations){
+                    my $dest_vol = $mirror->child_get_string("destination-volume");
+                    push(@volumes,$dest_vol);
+                }
             }
         }
         $snapmirror_next_tag = $snapmirror_output->child_get_string("next-tag");
