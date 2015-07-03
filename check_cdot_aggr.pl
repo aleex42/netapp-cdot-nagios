@@ -96,25 +96,29 @@ while(defined($next)){
     foreach my $aggr (@result){
 
         my $aggr_name = $aggr->child_get_string("aggregate-name");
-        my $space = $aggr->child_get("aggr-space-attributes");
-        my $percent = $space->child_get_int("percent-used-capacity");
 
-        $critical++ if $percent >= $Critical;
-        $warning++  if $percent >= $Warning;
+        unless($aggr_name =~ m/^aggr0_/){
 
-        if ($message) {
-            $message .= ", " . $aggr_name . " (" . $percent . "%)";
+            my $space = $aggr->child_get("aggr-space-attributes");
+            my $percent = $space->child_get_int("percent-used-capacity");
+
+            $critical++ if $percent >= $Critical;
+            $warning++  if $percent >= $Warning;
+
+            if ($message) {
+                $message .= ", " . $aggr_name . " (" . $percent . "%)";
+            }
+            else {
+                $message .= $aggr_name . " (" . $percent . "%)";
+            }   
+
+            if ($perf) {
+                $perfmsg .= " $aggr_name=$percent%;$Warning;$Critical";
+            }
+            else {
+                $perfmsg .= "$aggr_name=$percent%;$Warning;$Critical";
+            }   
         }
-        else {
-            $message .= $aggr_name . " (" . $percent . "%)";
-        }   
-
-        if ($perf) {
-            $perfmsg .= " $aggr_name=$percent%;$Warning;$Critical";
-        }
-        else {
-            $perfmsg .= "$aggr_name=$percent%;$Warning;$Critical";
-        }   
     }
 
     $next = $output->child_get_string("next-tag");
