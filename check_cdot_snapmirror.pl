@@ -32,7 +32,7 @@ sub Error {
 Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
-$LagOpt = 3600 * 28 unless $LagOpt; # 1 day 3 hours
+$LagOpt = 3600 * 28 unless $LagOpt; # 1 day 4 hours
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
@@ -128,8 +128,7 @@ check_cdot_snapmirror - Checks SnapMirror Healthnes
 =head1 SYNOPSIS
 
 check_cdot_snapmirror.pl --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD --warning PERCENT_WARNING \
-           --critical PERCENT_CRITICAL
+           --password PASSWORD [--lag DELAY-SECONDS] \
 
 =head1 DESCRIPTION
 

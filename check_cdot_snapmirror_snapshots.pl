@@ -21,6 +21,7 @@ GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
+    'age=i'      => \my $AgeOpt,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -31,6 +32,7 @@ sub Error {
 Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
+$AgeOpt = 3600 * 24 * 2 unless $AgeOpt; # 2 days
 
 my @old_snapshots;
 my $now = time;
@@ -85,7 +87,7 @@ while(defined($next)){
                 my $snap_time = $snap->child_get_string("access-time");
                 my $age = $now - $snap_time;
 
-                if($age >= 172800){
+                if($age >= $AgeOpt){
                     push @old_snapshots, "$vol_name/$snap_name";
                 }
             }
@@ -94,12 +96,12 @@ while(defined($next)){
 }
 
 if (@old_snapshots) {
-    print @old_snapshots . " snapshot(s) older than 90 days:\n";
+    print @old_snapshots . " snapshot(s) older than $AgeOpt seconds:\n";
     print "@old_snapshots\n";
     exit 1;
 }
 else {
-    print "No snapshots are older than 90 days\n";
+    print "No snapshots are older than $AgeOpt seconds\n";
     exit 0;
 }
 
@@ -114,11 +116,11 @@ check_cdot_snapmirror_snapshots - Check if there are old Snapshots in snapmirror
 =head1 SYNOPSIS
 
 check_cdot_snapmirror_snapshots.pl --hostname HOSTNAME \
-    --username USERNAME --password PASSWORD
+    --username USERNAME --password PASSWORD [--age AGE-SECONDS]
 
 =head1 DESCRIPTION
 
-Checks if old ( > 90 days ) Snapshots exist
+Checks if old ( > 2 days ) Snapshots exist
 
 =head1 OPTIONS
 
@@ -136,6 +138,10 @@ The Login Username of the NetApp to monitor
 
 The Login Password of the NetApp to monitor
 
+=item --age AGE-SECONDS
+
+Snapshot age in Seconds. Default 2 days
+
 =item -help
 
 =item -?
@@ -147,7 +153,7 @@ to see this Documentation
 =head1 EXIT CODE
 
 3 if timeout occured
-1 if Warning Threshold (90 days) has been reached
+1 if Warning Threshold (2 days) has been reached
 0 if everything is ok
 
 =head1 AUTHORS
