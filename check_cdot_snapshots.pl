@@ -21,6 +21,7 @@ GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
+    'age=i'      => \my $AgeOpt,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -31,6 +32,7 @@ sub Error {
 Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
+$AgeOpt = 3600 * 24 * 90 unless $AgeOpt; # 90 days
 
 my @old_snapshots;
 my $now = time;
@@ -83,7 +85,7 @@ while(defined($next)){
             my $snap_time = $snap->child_get_string("access-time");
             my $age = $now - $snap_time;
 
-            if($age >= 7776000){
+            if($age >= $AgeOpt){
                 unless(grep(/$vol_name/, @snapmirrors)){
                     my $snap_name  = $snap->child_get_string("name");
                     push @old_snapshots, "$vol_name/$snap_name";
@@ -94,12 +96,12 @@ while(defined($next)){
 }
 
 if (@old_snapshots) {
-    print @old_snapshots . " snapshot(s) older than 90 days:\n";
+    print @old_snapshots . " snapshot(s) older than $AgeOpt seconds:\n";
     print "@old_snapshots\n";
     exit 1;
 }
 else {
-    print "No snapshots are older than 90 days\n";
+    print "No snapshots are older than $AgeOpt seconds\n";
     exit 0;
 }
 
@@ -153,7 +155,7 @@ check_cdot_snapshots - Check if there are old Snapshots
 =head1 SYNOPSIS
 
 check_cdot_snapshots.pl --hostname HOSTNAME \
-    --username USERNAME --password PASSWORD
+    --username USERNAME --password PASSWORD [--age AGE-SECONDS]
 
 =head1 DESCRIPTION
 
@@ -174,6 +176,10 @@ The Login Username of the NetApp to monitor
 =item --password PASSWORD
 
 The Login Password of the NetApp to monitor
+
+=item --age AGE-SECONDS
+
+Snapshot age in Seconds. Default 90 days
 
 =item -help
 
