@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+# nagios: -epn
 # --
 # check_cdot_snapmirror_snapshots - Check if old Snapshots exists in snapmirror relations
 # Copyright (C) 2013 noris network AG, http://www.noris.net/

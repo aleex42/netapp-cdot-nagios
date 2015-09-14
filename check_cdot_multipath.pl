@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+# nagios: -epn
 # --
 # check_cdot_multipath - Check if all disks are multipathed (4 paths)
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
