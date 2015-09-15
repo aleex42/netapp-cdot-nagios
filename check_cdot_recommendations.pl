@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+# nagios: -epn
 # --
 # check_cdot_recommendation - Check cDOT Volume/SnapMirror Recommendations
 # Copyright (C) 2013 noris network AG, http://www.noris.net/

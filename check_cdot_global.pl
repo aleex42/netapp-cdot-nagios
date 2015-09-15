@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+# nagios: -epn
 # --
 # check_cdot_global - Check powersupplys, fans, nvram status, temp or global health
 # Copyright (C) 2013 noris network AG, http://www.noris.net/

@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+# nagios: -epn
 # --
 # check_cdot_clusterlinks.pl - Check cDOT HA-Interconnect and Cluster Links
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
