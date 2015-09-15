@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+# nagios: -epn
 # --
 # check_cdot_snapshots - Check if old Snapshots exists
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
