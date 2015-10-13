@@ -108,7 +108,7 @@ while(defined($next)){
 	
 	        if($state && ($state eq "online")){
 	
-	            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp") || ($vol_name =~ m/^temp__/)) || ($vol_name =~ m/^CC_snapprotect_SP/)){
+	            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp") || ($vol_name =~ m/^temp__/) || ($vol_name =~ m/^CC_snapprotect_SP/)){
 	
 	                my $space = $vol->child_get("volume-space-attributes");
 	                my $qos = $vol->child_get("volume-qos-attributes");
@@ -155,9 +155,11 @@ while(defined($snapmirror_next)){
         foreach my $snap (@snapmirror_result){
             my $dest_vol = $snap->child_get_string("destination-volume");
             my $schedule = $snap->child_get_string("schedule");
-
-            unless(($schedule =~ m/^hourly/) || ($schedule =~ m/^15min$/)) || ($dest_vol =~ m/^CC_snapprotect_SP/)){
+	
+						if(($dest_vol) && ($schedule)){
+	            unless(($schedule =~ m/^hourly/) || ($schedule =~ m/^15min$/) || ($dest_vol =~ m/^CC_snapprotect_SP/)){
                 push(@no_schedule, $dest_vol);
+							}
             }
         }
     }
