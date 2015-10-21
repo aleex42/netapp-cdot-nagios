@@ -17,6 +17,7 @@ use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
 use NaServer;
 use NaElement;
 use Getopt::Long;
+use Data::Dumper;
 
 GetOptions(
     'hostname=s' => \my $Hostname,
@@ -65,12 +66,15 @@ while(defined($next)){
 	my @result = $disks->children_get();
 	
 	foreach my $disk (@result) {
+
+        my $raid_type = $disk->child_get("disk-raid-info");
+        my $container = $raid_type->child_get_string('container-type');
 	
 	    $disk_count++;
 	
 	    my $owner = $disk->child_get("disk-ownership-info");
 	    my $diskstate = $owner->child_get_string('is-failed');
-	    if ( $diskstate eq 'true' ) {
+	    if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
 	        push @disk_list, $disk->child_get_string('disk-name');
 	    }
 	}
