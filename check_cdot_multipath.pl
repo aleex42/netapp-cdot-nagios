@@ -14,7 +14,7 @@ use 5.10.0;
 use strict;
 use warnings;
 
-use lib "/usr/lib/netapp-manageability-sdk-5.1/lib/perl/NetApp";
+use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
 use Getopt::Long;
