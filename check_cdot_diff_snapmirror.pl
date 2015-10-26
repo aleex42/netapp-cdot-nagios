@@ -81,6 +81,7 @@ $xi->child_add($xi1);
 my $xi2 = new NaElement('volume-id-attributes');
 $xi1->child_add($xi2);
 $xi2->child_add_string('name','<name>');
+$xi2->child_add_string('type','<type>');
 my $xi4 = new NaElement('query');
 $iterator->child_add($xi4);
 my $xi5 = new NaElement('volume-attributes');
@@ -109,8 +110,9 @@ while(defined($next)){
         my $id = $vol->child_get("volume-id-attributes");
 
         my $vol_name = $id->child_get_string("name");
+        my $type = $id->child_get_string("type");
 
-        unless($vol_name =~ m/vol0/){
+        unless(($vol_name =~ m/vol0/) || ( $type eq "dp") || ($vol_name =~ m/_root$/)){
 
             my $vserver = $id->child_get_string("owning-vserver-name");
             my $location = "$vserver:$vol_name";
