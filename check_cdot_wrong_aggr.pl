@@ -43,7 +43,7 @@ my $message;
 my $wrong_dp = 0;
 my $wrong_rw = 0;
 
-unless(($Hostname eq "na-cl1-nbg4.office.noris.de") || ($Hostname eq "na-cl1-nbg4")){
+unless(($Hostname eq "na-cl1-nbg4.office.noris.de") || ($Hostname eq "na-cl1-nbg4") || ($Hostname eq "10.2.0.124")){
 
     print "No aggr mapping\n";
     exit 0
