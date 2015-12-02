@@ -62,17 +62,25 @@ while(defined($next)){
 	
 	my $heads = $output->child_get("attributes-list");
 	my @result = $heads->children_get();
-	
+
 	foreach my $disk (@result){
 	
 	    my $paths = $disk->child_get("disk-paths");
 	    my $path_count = $paths->children_get("disk-path-info");
 	    my $disk_name = $disk->child_get_string("disk-name");
+        my $path_info = $paths->child_get("disk-path-info");
 
-	    if ($path_count ne "4"){
-	        my @disk_name = split(/:/,$disk_name);
-	        push @failed_disks, $disk_name[1];
-		}
+        foreach my $path ($path_info){
+
+            my $disk_path_name = $path->child_get_string("disk-name");
+            my @split = split(/:/,$disk_path_name);
+
+            if((@split eq 2) && ($path_count ne 4)){
+                push @failed_disks, $disk_name;
+            } elsif((@split eq 3) && ($path_count ne 8)){
+                push @failed_disks, $disk_name;
+            }
+        }
 	}
 	$next = $output->child_get_string("next-tag");
 }
