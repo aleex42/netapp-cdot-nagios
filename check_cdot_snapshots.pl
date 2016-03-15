@@ -73,7 +73,8 @@ while(defined($next)){
             exit 3;
         }
 
-        my @snapshots = $snap_output->child_get("attributes-list")->children_get();
+        my $snaps = $snap_output->child_get("attributes-list");
+        my @snapshots = $snaps->children_get();
 
         unless(@snapshots){
             print "OK - No snapshots\n";
