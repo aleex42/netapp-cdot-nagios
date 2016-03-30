@@ -84,7 +84,7 @@ while(defined($next)){
             if(! $current_transfer){
     			$failed_names{$dest_vol} = [ $healthy, $lag ];
     			$snapmirror_failed++;
-    		} elsif ($status eq "transferring"){
+    		} elsif (($status eq "transferring") || ($status eq "finalizing")){
     			$snapmirror_ok++;
     		}
         } else {
@@ -92,7 +92,7 @@ while(defined($next)){
         }
 
         if(defined($lag) && ($lag >= $LagOpt)){
-            unless($failed_names{$dest_vol} || $status eq "transferring"){
+            unless(($failed_names{$dest_vol}) || ($status eq "transferring") || ($status eq "finalizing")){
                 $failed_names{$dest_vol} = [ $healthy, $lag ];
                 $snapmirror_failed++;
             }
