@@ -26,9 +26,13 @@ GetOptions(
     'warning=i'  => \my $Warning,
     'critical=i' => \my $Critical,
     'aggr=s'     => \my $Aggr,
-    'perf'     => \my $perf,
+    'perf'       => \my $perf,
+    'exclude=s'  => \my @excludelistarray,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
+
+my %Excludelist;
+@Excludelist{@excludelistarray}=();
 
 sub Error {
     print "$0: " . $_[0] . "\n";
@@ -95,6 +99,8 @@ while(defined($next)){
     my @result = $aggrs->children_get();
 
     foreach my $aggr (@result){
+
+        next if exists $Excludelist{$aggr_name};
 
         my $aggr_name = $aggr->child_get_string("aggregate-name");
 
@@ -192,6 +198,10 @@ Flag for performance data output
 =item --aggr
 
 Check only specific aggregate
+
+=item --exclude
+
+Optional: The name of an aggregate that has to be excluded from the checks (multiple exclude item for multiple aggregates)
 
 =item -help
 
