@@ -100,11 +100,13 @@ while(defined($next)){
 
     foreach my $aggr (@result){
 
-        next if exists $Excludelist{$aggr_name};
+        
 
         my $aggr_name = $aggr->child_get_string("aggregate-name");
 
         unless($aggr_name =~ m/^aggr0_/){
+
+            next if exists $Excludelist{$aggr_name};
 
             my $space = $aggr->child_get("aggr-space-attributes");
             my $percent = $space->child_get_int("percent-used-capacity");
