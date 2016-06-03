@@ -38,6 +38,8 @@ Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 $AgeOpt = 3600 * 24 * 90 unless $AgeOpt; # 90 days
 
+$retention_days = $retention_days * 86400;
+
 my @old_snapshots;
 my $now = time;
 
@@ -45,6 +47,8 @@ my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
+
+single_volume_check() if $volumename;
 
 my @snapmirrors = snapmirror_volumes();
 
@@ -149,6 +153,94 @@ sub snapmirror_volumes {
     }
     return @volumes;
 }
+
+sub single_volume_check {
+    my $critical_state = "false";
+    my $warning_state = "false";
+    my $temp_best_snap = "";
+    my $timestamp_best_snap = -1;
+    my $snaptime_second = $retention_days*86400;
+    my $found = 0;
+    my $out = $s->invoke(  
+        "volume-list-info", 
+        "volume", 
+        $volumename
+    );
+    if($out->results_status() eq "failed") {
+        print ("ERROR: Failed script: ".$out->results_reason()."\n");
+        exit(2);
+    }
+    my $out = $connection->invoke(  
+        "volume-list-info", 
+        "volume", 
+        $volumename
+    );
+
+    if($out->results_status() eq "failed") {
+        print ("ERROR: Script fallito. ".$out->results_reason()."\n");
+        exit(2);
+    }    
+
+    my $volume_info = $out->child_get("volumes");
+    my @volume_list = $volume_info->children_get();
+
+
+    foreach my $vol (@volume_list) {
+        $out = $connection -> invoke(
+            "snapshot-list-info", 
+            "target-name", $vol->child_get_string("name"),
+            "target-type", "volume"
+        );
+        if ($out->results_status() eq "failed") {
+            print("ERROR: Script fallito. ".$out->results_reason()."\n");
+            exit(2);
+        }
+        my $snapshot_info = $out -> child_get("snapshots");
+        if ($snapshot_info->has_children() && $snapshotnumber != 0){
+            my @snapshot_list = $snapshot_info -> children_get();
+            if (scalar @snapshot_list != $snapshotnumber){
+                print "WARNING - Il numero di snapshot non corrisponde a quanto richiesto (=".$snapshotnumber.")\n";
+                exit(1);
+            }
+            foreach my $snap(@snapshot_list){
+                my $snap_name = $snap->child_get_string("name");
+                my $snap_create_time = $snap->child_get_int("access-time");
+                my $current_time = time;
+                my $temp = $current_time - $snap_create_time;
+                if($current_time - $snap_create_time <= $snaptime_second){
+                    if($found == 0){
+                        $found = 1;
+                        $temp_best_snap = $snap_name;
+                        $timestamp_best_snap = $snap_create_time;
+                    }elsif ($timestamp_best_snap - $snap_create_time > 0){
+                        $temp_best_snap = $snap_name;
+                        $timestamp_best_snap = $snap_create_time;
+                    }
+                }
+            }
+            if ($found == 1){
+                print "OK - Snapshot a posto\n";
+                exit(0);
+            } else {
+                print "CRITICAL - La snapshot piu' recente e' piu' vecchia del tempo di retention indicato (=".$retention_days." gg)\n";
+                exit(2);
+            }
+        } else {
+            if ((scalar $snapshot_info->has_children() != 0) && $snapshotnumber == 0){
+                print "CRITICAL - Sono presenti delle snapshot non previste\n";
+                exit(2);
+            }elsif ((scalar $snapshot_info->has_children() == 0) && $snapshotnumber != 0){
+                print "WARNING - Il numero di snapshot non corrisponde a quanto richiesto (=".$snapshotnumber.")\n";
+                exit(1);
+            }else{
+                print "OK - Nessuna snapshot per il volume indicato\n";
+                exit(0);
+            }
+        }
+    }
+
+
+}
 __END__
 
 =encoding utf8
@@ -196,7 +288,7 @@ The number of snapshots that should be present in VOLUME volume (useful for chec
 
 =item --retentiondays AGE-DAYS
 
-Snapshot age in days of the oldest snapshot in VOLUME volume (useful for check that a snapshot retention works)
+Snapshot age in days of the newest snapshot in VOLUME volume (useful for check that a snapshot retention works)
 
 =item -help
 
