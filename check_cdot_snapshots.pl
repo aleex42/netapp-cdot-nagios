@@ -187,11 +187,13 @@ sub single_volume_check {
         exit 1;
     }
 
-    my $current_snap_num = $xo->child_get_int("num-records");
-    my $attr_list = $xo->child_get("attributes-list");
-    @snapshot_list = $attr_list->children_get();
+    my $current_snap_num = 0; 
+    $current_snap_num = $xo->child_get_int("num-records");
 
-    if ($snapshotnumber != 0){
+    if ($snapshotnumber != 0 && $current_snap_num != 0){
+        
+        my $attr_list = $xo->child_get("attributes-list");
+        @snapshot_list = $attr_list->children_get();
 
         if ($current_snap_num != $snapshotnumber){
             print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")\n";
@@ -201,9 +203,6 @@ sub single_volume_check {
         foreach my $snap(@snapshot_list){
             my $snap_create_time = $snap->child_get_int("access-time");
             my $temp = $now - $snap_create_time;
-            print $iter."\n";
-            print $snaptime_second."\n";
-            print $now - $snap_create_time."\n";
             if($now - $snap_create_time <= $snaptime_second){
                 if($found == 0){
                     $found = 1;
@@ -213,7 +212,6 @@ sub single_volume_check {
                 }
             }
             $iter++;
-            print "\n\n";
         }
         if ($found == 1){
             print "OK - Snapshots OK\n";
@@ -223,11 +221,11 @@ sub single_volume_check {
             exit(2);
         }
     } else {
-        if ((scalar @snapshot_list != 0) && $snapshotnumber == 0){
+        if ($current_snap_num != 0 && $snapshotnumber == 0){
             print "CRITICAL - There are snapshots for a volume that shouldn't have any\n";
             exit(2);
-        }elsif ((scalar @snapshot_list == 0) && $snapshotnumber != 0){
-            print "WARNING - The number of snapshots is different from the expected (=".$snapshotnumber.")\n";
+        }elsif ($current_snap_num == 0 && $snapshotnumber != 0){
+            print "WARNING - The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")\n";
             exit(1);
         }else{
             print "OK - No snapshot for the requested volume\n";
