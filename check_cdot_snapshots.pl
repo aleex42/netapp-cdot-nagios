@@ -199,7 +199,7 @@ sub single_volume_check {
         if ($snapshot_info->has_children() && $snapshotnumber != 0){
             my @snapshot_list = $snapshot_info -> children_get();
             if (scalar @snapshot_list != $snapshotnumber){
-                print "WARNING - Il numero di snapshot non corrisponde a quanto richiesto (=".$snapshotnumber.")\n";
+                print "WARNING - The snapshot number is different from the requested (=".$snapshotnumber.")\n";
                 exit(1);
             }
             foreach my $snap(@snapshot_list){
@@ -219,21 +219,21 @@ sub single_volume_check {
                 }
             }
             if ($found == 1){
-                print "OK - Snapshot a posto\n";
+                print "OK - Snapshots OK\n";
                 exit(0);
             } else {
-                print "CRITICAL - La snapshot piu' recente e' piu' vecchia del tempo di retention indicato (=".$retention_days." gg)\n";
+                print "CRITICAL - The newest snapshot is older than the time requested (=".$retention_days." gg)\n";
                 exit(2);
             }
         } else {
             if ((scalar $snapshot_info->has_children() != 0) && $snapshotnumber == 0){
-                print "CRITICAL - Sono presenti delle snapshot non previste\n";
+                print "CRITICAL - There are snapshots for a volume that shouldn't have any\n";
                 exit(2);
             }elsif ((scalar $snapshot_info->has_children() == 0) && $snapshotnumber != 0){
-                print "WARNING - Il numero di snapshot non corrisponde a quanto richiesto (=".$snapshotnumber.")\n";
+                print "WARNING - The number of snapshots is different from the expected (=".$snapshotnumber.")\n";
                 exit(1);
             }else{
-                print "OK - Nessuna snapshot per il volume indicato\n";
+                print "OK - No snapshot for the requested volume\n";
                 exit(0);
             }
         }
