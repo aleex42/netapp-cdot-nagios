@@ -199,25 +199,24 @@ sub single_volume_check {
             print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")\n";
             exit(1);
         }
-        my $iter=1;
         foreach my $snap(@snapshot_list){
             my $snap_create_time = $snap->child_get_int("access-time");
-            my $temp = $now - $snap_create_time;
             if($now - $snap_create_time <= $snaptime_second){
                 if($found == 0){
                     $found = 1;
-                    $timestamp_best_snap = $snap_create_time;
-                }elsif ($timestamp_best_snap - $snap_create_time > 0){
-                    $timestamp_best_snap = $snap_create_time;
-                }
+                    last;
+                } 
+            } elsif ($timestamp_best_snap - $snap_create_time < 0){
+                $timestamp_best_snap = $snap_create_time;
+            } elsif ($timestamp_best_snap == -1){
+                $timestamp_best_snap = $snap_create_time;
             }
-            $iter++;
         }
         if ($found == 1){
             print "OK - Snapshots OK\n";
             exit(0);
         } else {
-            print "CRITICAL - The newest snapshot is older than the time requested (".($timestamp_best_snap/86400)."!=".$retention_days." gg)\n";
+            print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%02d", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)\n";
             exit(2);
         }
     } else {
