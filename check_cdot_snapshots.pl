@@ -170,7 +170,7 @@ sub single_volume_check {
         print ("ERROR: Failed script: ".$out->results_reason()."\n");
         exit(2);
     }
-    my $out = $connection->invoke(  
+    $out = $s->invoke(  
         "volume-list-info", 
         "volume", 
         $volumename
@@ -186,7 +186,7 @@ sub single_volume_check {
 
 
     foreach my $vol (@volume_list) {
-        $out = $connection -> invoke(
+        $out = $s -> invoke(
             "snapshot-list-info", 
             "target-name", $vol->child_get_string("name"),
             "target-type", "volume"
