@@ -23,7 +23,7 @@ GetOptions(
     'username=s'        => \my $Username,
     'password=s'        => \my $Password,
     'age=i'             => \my $AgeOpt,
-    'numbersnapshot=i'  => \my $SnapshotNumber,
+    'numbersnapshot=i'  => \my $snapshotnumber,
     'retentiondays=i'   => \my $retention_days,
     'volume=s'          => \my $volumename,
     'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
@@ -37,8 +37,6 @@ Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 $AgeOpt = 3600 * 24 * 90 unless $AgeOpt; # 90 days
-
-$retention_days = $retention_days * 86400;
 
 my @old_snapshots;
 my $now = time;
@@ -155,91 +153,87 @@ sub snapmirror_volumes {
 }
 
 sub single_volume_check {
+    
+    # Declare the variables needed
+    
     my $critical_state = "false";
     my $warning_state = "false";
     my $temp_best_snap = "";
     my $timestamp_best_snap = -1;
     my $snaptime_second = $retention_days*86400;
     my $found = 0;
-    my $out = $s->invoke(  
-        "volume-list-info", 
-        "volume", 
-        $volumename
-    );
-    if($out->results_status() eq "failed") {
-        print ("ERROR: Failed script: ".$out->results_reason()."\n");
-        exit(2);
+    my @snapshot_list;
+    my $now = time;
+    
+    # Create the XML code to be submitted to the CDOT Cluster
+
+    my $api = new NaElement('snapshot-get-iter');
+    my $xi = new NaElement('desired-attributes');
+    $api->child_add($xi);
+    my $xi1 = new NaElement('snapshot-info');
+    $xi->child_add($xi1);
+    $xi1->child_add_string('access-time');
+    my $xi2 = new NaElement('query');
+    $api->child_add($xi2);
+    my $xi3 = new NaElement('snapshot-info');
+    $xi2->child_add($xi3);
+    $xi3->child_add_string('volume',$volumename);
+    $api->child_add_string('max-records','10000');
+    
+    my $xo = $s->invoke_elem($api);
+    if ($xo->results_status() eq 'failed') {
+        print 'Error:\n';
+        print $xo->sprintf();
+        exit 1;
     }
-    $out = $s->invoke(  
-        "volume-list-info", 
-        "volume", 
-        $volumename
-    );
 
-    if($out->results_status() eq "failed") {
-        print ("ERROR: Script fallito. ".$out->results_reason()."\n");
-        exit(2);
-    }    
+    my $current_snap_num = $xo->child_get_int("num-records");
+    my $attr_list = $xo->child_get("attributes-list");
+    @snapshot_list = $attr_list->children_get();
 
-    my $volume_info = $out->child_get("volumes");
-    my @volume_list = $volume_info->children_get();
+    if ($snapshotnumber != 0){
 
-
-    foreach my $vol (@volume_list) {
-        $out = $s -> invoke(
-            "snapshot-list-info", 
-            "target-name", $vol->child_get_string("name"),
-            "target-type", "volume"
-        );
-        if ($out->results_status() eq "failed") {
-            print("ERROR: Script fallito. ".$out->results_reason()."\n");
-            exit(2);
+        if ($current_snap_num != $snapshotnumber){
+            print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")\n";
+            exit(1);
         }
-        my $snapshot_info = $out -> child_get("snapshots");
-        if ($snapshot_info->has_children() && $snapshotnumber != 0){
-            my @snapshot_list = $snapshot_info -> children_get();
-            if (scalar @snapshot_list != $snapshotnumber){
-                print "WARNING - The snapshot number is different from the requested (=".$snapshotnumber.")\n";
-                exit(1);
-            }
-            foreach my $snap(@snapshot_list){
-                my $snap_name = $snap->child_get_string("name");
-                my $snap_create_time = $snap->child_get_int("access-time");
-                my $current_time = time;
-                my $temp = $current_time - $snap_create_time;
-                if($current_time - $snap_create_time <= $snaptime_second){
-                    if($found == 0){
-                        $found = 1;
-                        $temp_best_snap = $snap_name;
-                        $timestamp_best_snap = $snap_create_time;
-                    }elsif ($timestamp_best_snap - $snap_create_time > 0){
-                        $temp_best_snap = $snap_name;
-                        $timestamp_best_snap = $snap_create_time;
-                    }
+        my $iter=1;
+        foreach my $snap(@snapshot_list){
+            my $snap_create_time = $snap->child_get_int("access-time");
+            my $temp = $now - $snap_create_time;
+            print $iter."\n";
+            print $snaptime_second."\n";
+            print $now - $snap_create_time."\n";
+            if($now - $snap_create_time <= $snaptime_second){
+                if($found == 0){
+                    $found = 1;
+                    $timestamp_best_snap = $snap_create_time;
+                }elsif ($timestamp_best_snap - $snap_create_time > 0){
+                    $timestamp_best_snap = $snap_create_time;
                 }
             }
-            if ($found == 1){
-                print "OK - Snapshots OK\n";
-                exit(0);
-            } else {
-                print "CRITICAL - The newest snapshot is older than the time requested (=".$retention_days." gg)\n";
-                exit(2);
-            }
-        } else {
-            if ((scalar $snapshot_info->has_children() != 0) && $snapshotnumber == 0){
-                print "CRITICAL - There are snapshots for a volume that shouldn't have any\n";
-                exit(2);
-            }elsif ((scalar $snapshot_info->has_children() == 0) && $snapshotnumber != 0){
-                print "WARNING - The number of snapshots is different from the expected (=".$snapshotnumber.")\n";
-                exit(1);
-            }else{
-                print "OK - No snapshot for the requested volume\n";
-                exit(0);
-            }
+            $iter++;
+            print "\n\n";
         }
-    }
-
-
+        if ($found == 1){
+            print "OK - Snapshots OK\n";
+            exit(0);
+        } else {
+            print "CRITICAL - The newest snapshot is older than the time requested (".($timestamp_best_snap/86400)."!=".$retention_days." gg)\n";
+            exit(2);
+        }
+    } else {
+        if ((scalar @snapshot_list != 0) && $snapshotnumber == 0){
+            print "CRITICAL - There are snapshots for a volume that shouldn't have any\n";
+            exit(2);
+        }elsif ((scalar @snapshot_list == 0) && $snapshotnumber != 0){
+            print "WARNING - The number of snapshots is different from the expected (=".$snapshotnumber.")\n";
+            exit(1);
+        }else{
+            print "OK - No snapshot for the requested volume\n";
+            exit(0);
+        }
+    } 
 }
 __END__
 
