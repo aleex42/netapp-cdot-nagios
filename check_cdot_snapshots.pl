@@ -19,11 +19,14 @@ use Getopt::Long;
 use Data::Dumper;
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'age=i'      => \my $AgeOpt,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'hostname=s'        => \my $Hostname,
+    'username=s'        => \my $Username,
+    'password=s'        => \my $Password,
+    'age=i'             => \my $AgeOpt,
+    'numbersnapshot=i'  => \my $SnapshotNumber,
+    'retentiondays=i'   => \my $retention_days,
+    'volume=s'          => \my $volumename,
+    'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 sub Error {
@@ -182,6 +185,18 @@ The Login Password of the NetApp to monitor
 =item --age AGE-SECONDS
 
 Snapshot age in Seconds. Default 90 days
+
+=item --volume VOLUME
+
+Name of the single snapshot that has to be checked (useful for check that a snapshot retention works)
+
+=item --numbersnapshot NUMBER-ITEMS
+
+The number of snapshots that should be present in VOLUME volume (useful for check that a snapshot retention works)
+
+=item --retentiondays AGE-DAYS
+
+Snapshot age in days of the oldest snapshot in VOLUME volume (useful for check that a snapshot retention works)
 
 =item -help
 
