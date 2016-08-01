@@ -216,7 +216,7 @@ sub single_volume_check {
             print "OK - Snapshots OK\n";
             exit(0);
         } else {
-            print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%02d", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)\n";
+            print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)\n";
             exit(2);
         }
     } else {
