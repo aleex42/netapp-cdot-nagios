@@ -28,8 +28,12 @@ GetOptions(
     'inode-critical=i' => \my $InodeCritical,
     'perf'     => \my $perf,
     'volume=s'   => \my $Volume,
+    'exclude=s'	 =>	\my @excludelistarray,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
+
+my %Excludelist;
+@Excludelist{@excludelistarray}=();
 
 sub Error {
     print "$0: " . $_[0] . "\n";
@@ -124,6 +128,8 @@ while(defined($next)){
 	    
 	        my $vol_info = $vol->child_get("volume-id-attributes");
 	        my $vol_name = $vol_info->child_get_string("name");
+
+	        next if exists $Excludelist{$vol_name};
 	    
 	        my $vol_space = $vol->child_get("volume-space-attributes");
 	    
@@ -238,6 +244,10 @@ Optional: The name of the Volume to check
 =item --perf
 
 Flag for performance data output
+
+=item --exclude
+
+Optional: The name of a volume that has to be excluded from the checks (multiple exclude item for multiple volumes)
 
 =item -help
 
