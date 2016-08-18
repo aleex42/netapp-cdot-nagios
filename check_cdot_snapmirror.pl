@@ -23,6 +23,8 @@ GetOptions(
     'username=s' => \my $Username,
     'password=s' => \my $Password,
     'lag=i'      => \my $LagOpt,
+    'volume=s'   => \my $VolumeName,
+    'vserver=s'  => \my $VServer,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -43,6 +45,21 @@ $s->set_admin_user( $Username, $Password );
 my $snap_iterator = NaElement->new("snapmirror-get-iter");
 my $tag_elem = NaElement->new("tag");
 $snap_iterator->child_add($tag_elem);
+
+my $query_elem;
+my $sminfo_elem;
+if(defined($VolumeName) || defined($VServer)) {
+	$query_elem = NaElement->new("query");
+        $snap_iterator->child_add($query_elem);
+	$sminfo_elem = NaElement->new("snapmirror-info");
+	$query_elem->child_add($sminfo_elem);
+	if(defined($VolumeName)) {
+		$sminfo_elem->child_add_string("destination-volume", $VolumeName);
+	}
+	if(defined($VServer)) {
+		$sminfo_elem->child_add_string("destination-vserver", $VServer);
+	}
+}
 
 my $next = "";
 my $snapmirror_failed;
@@ -128,8 +145,9 @@ check_cdot_snapmirror - Checks SnapMirror Healthnes
 
 =head1 SYNOPSIS
 
-check_cdot_snapmirror.pl --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD [--lag DELAY-SECONDS] \
+check_cdot_snapmirror.pl --hostname HOSTNAME --username USERNAME
+           --password PASSWORD [--lag DELAY-SECONDS]
+           [--volume VOLUME-NAME] [--vserver VSERVER-NAME]
 
 =head1 DESCRIPTION
 
@@ -154,6 +172,14 @@ The Login Password of the NetApp to monitor
 =item --lag DELAY-SECONDS
 
 Snapmirror delay in Seconds. Default 28h
+
+=item --volume VOLUME-NAME
+
+Name of the destination volume to be checked. If not specified, check all volumes.
+
+=item --vserver VSERVER-NAME
+
+Name of the destination vserver to be checked. If not specificed, search only the base server.
 
 =item -help
 
