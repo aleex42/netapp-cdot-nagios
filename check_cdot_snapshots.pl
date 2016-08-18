@@ -19,11 +19,14 @@ use Getopt::Long;
 use Data::Dumper;
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'age=i'      => \my $AgeOpt,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'hostname=s'        => \my $Hostname,
+    'username=s'        => \my $Username,
+    'password=s'        => \my $Password,
+    'age=i'             => \my $AgeOpt,
+    'numbersnapshot=i'  => \my $snapshotnumber,
+    'retentiondays=i'   => \my $retention_days,
+    'volume=s'          => \my $volumename,
+    'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 sub Error {
@@ -42,6 +45,8 @@ my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
+
+single_volume_check() if $volumename;
 
 my @snapmirrors = snapmirror_volumes();
 
@@ -146,6 +151,87 @@ sub snapmirror_volumes {
     }
     return @volumes;
 }
+
+sub single_volume_check {
+    
+    # Declare the variables needed
+    
+    my $critical_state = "false";
+    my $warning_state = "false";
+    my $temp_best_snap = "";
+    my $timestamp_best_snap = -1;
+    my $snaptime_second = $retention_days*86400;
+    my $found = 0;
+    my @snapshot_list;
+    my $now = time;
+    
+    # Create the XML code to be submitted to the CDOT Cluster
+
+    my $api = new NaElement('snapshot-get-iter');
+    my $xi = new NaElement('desired-attributes');
+    $api->child_add($xi);
+    my $xi1 = new NaElement('snapshot-info');
+    $xi->child_add($xi1);
+    $xi1->child_add_string('access-time');
+    my $xi2 = new NaElement('query');
+    $api->child_add($xi2);
+    my $xi3 = new NaElement('snapshot-info');
+    $xi2->child_add($xi3);
+    $xi3->child_add_string('volume',$volumename);
+    $api->child_add_string('max-records','10000');
+    
+    my $xo = $s->invoke_elem($api);
+    if ($xo->results_status() eq 'failed') {
+        print 'Error:\n';
+        print $xo->sprintf();
+        exit 1;
+    }
+
+    my $current_snap_num = 0; 
+    $current_snap_num = $xo->child_get_int("num-records");
+
+    if ($snapshotnumber != 0 && $current_snap_num != 0){
+        
+        my $attr_list = $xo->child_get("attributes-list");
+        @snapshot_list = $attr_list->children_get();
+
+        if ($current_snap_num != $snapshotnumber){
+            print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")\n";
+            exit(1);
+        }
+        foreach my $snap(@snapshot_list){
+            my $snap_create_time = $snap->child_get_int("access-time");
+            if($now - $snap_create_time <= $snaptime_second){
+                if($found == 0){
+                    $found = 1;
+                    last;
+                } 
+            } elsif ($timestamp_best_snap - $snap_create_time < 0){
+                $timestamp_best_snap = $snap_create_time;
+            } elsif ($timestamp_best_snap == -1){
+                $timestamp_best_snap = $snap_create_time;
+            }
+        }
+        if ($found == 1){
+            print "OK - Snapshots OK\n";
+            exit(0);
+        } else {
+            print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)\n";
+            exit(2);
+        }
+    } else {
+        if ($current_snap_num != 0 && $snapshotnumber == 0){
+            print "CRITICAL - There are snapshots for a volume that shouldn't have any\n";
+            exit(2);
+        }elsif ($current_snap_num == 0 && $snapshotnumber != 0){
+            print "WARNING - The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")\n";
+            exit(1);
+        }else{
+            print "OK - No snapshot for the requested volume\n";
+            exit(0);
+        }
+    } 
+}
 __END__
 
 =encoding utf8
@@ -182,6 +268,18 @@ The Login Password of the NetApp to monitor
 =item --age AGE-SECONDS
 
 Snapshot age in Seconds. Default 90 days
+
+=item --volume VOLUME
+
+Name of the single snapshot that has to be checked (useful for check that a snapshot retention works)
+
+=item --numbersnapshot NUMBER-ITEMS
+
+The number of snapshots that should be present in VOLUME volume (useful for check that a snapshot retention works)
+
+=item --retentiondays AGE-DAYS
+
+Snapshot age in days of the newest snapshot in VOLUME volume (useful for check that a snapshot retention works)
 
 =item -help
 
