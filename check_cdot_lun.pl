@@ -25,7 +25,6 @@ GetOptions(
     'size-warning=i'  => \my $SizeWarning,
     'size-critical=i' => \my $SizeCritical,
     'volume=s'   => \my $Volume,
-    'exclude=s'	 =>	\my @excludelistarray,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -41,57 +40,55 @@ Error('Option --size-critical needed!') unless $SizeCritical;
 
 my ($crit_msg, $warn_msg, $ok_msg);
 
-my $s = new NaServer('srvsbcdot', 1 , 31);
-$s->set_server_type('FILER');
+my $s = new NaServer($Hostname, 1 , 3 );
 $s->set_transport_type('HTTPS');
-$s->set_port(443);
 $s->set_style('LOGIN');
-$s->set_admin_user($Hostname, $Password);
+$s->set_admin_user($Username, $Password);
+
 
 my $iterator = new NaElement('lun-get-iter');
 my $tag_elem = NaElement->new("tag");
 $iterator->child_add($tag_elem);
 
-if $volume {
-	my $xi = new NaElement('query');
-	$iterator->child_add($xi);
-	my $xi1 = new NaElement('lun-info');
-	$xi->child_add($xi1);
-	$xi1->child_add_string('volume','*');
-}
-my $xi2 = new NaElement('desired-attributes');
+my $xi = new NaElement('desired-attributes');
+$iterator->child_add($xi);
+my $xi1 = new NaElement('lun-info');
+$xi->child_add($xi1);
+$xi1->child_add_string('online','<online>');
+$xi1->child_add_string('path','<path>');
+$xi1->child_add_string('size','<size>');
+$xi1->child_add_string('size-used','<size-used>');
+$xi1->child_add_string('state','<state>');
+$xi1->child_add_string('volume','<volume>');
+my $xi2 = new NaElement('query');
 $iterator->child_add($xi2);
-my $xi3 = new NaElement('lun-info');
-$xi2->child_add($xi3);
-$xi3->child_add_string('path','<path>');
-$xi3->child_add_string('size','<size>');
-$xi3->child_add_string('size-used','<size-used>');
-$xi3->child_add_string('state','<state>');
-$xi3->child_add_string('volume','<volume>');
-
-
+if($Volume){
+	my $xi3 = new NaElement('lun-info');
+	$xi2->child_add($xi3);
+	$xi3->child_add_string('volume',$Volume);
+}
 my $next = '';
 
 while(defined($next)){
-
 	unless($next eq ""){
 		$tag_elem->set_content($next);
 	}
+
+	$iterator->child_add_string('max-records',100);
 	my $output = $s->invoke_elem($iterator);
-	if($output->results_errno != 0){
-		my $r = $output->result_reason();
-		print "UNKNOWN: $r\n";
-		exit 3;
+	if ($output->results_errno != 0) {
+	    my $r = $output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
 	}
 
-	my $volumes = $output->child_get("attributes-list");
-
-	unless($volumes){
-		print "CRITICAL: no volume matching this name\n";
+	my $luns_all = $output->child_get("attributes-list");
+	unless($output->child_get_int('num-records') != 0) {
+		print "CRITICAL: no volume matching this name\n"; 
 		exit 2;
 	}
 
-	my @result = $volumes->children_get();
+	my @result = $luns_all->children_get();
 
 	my $matching_volumes = @result;
 
@@ -102,18 +99,10 @@ while(defined($next)){
 		}
 	}
 
-	foreach my $vol (@result){
-		my $lun_info = $vol->child_get("lun-info");
+	foreach my $lun_info (@result){
 
 		if ($lun_info) {
 			my $lun_path = $lun_info->child_get_string("path");
-			my $next_flag = '';
-			foreach my $ii (@excludelistarray){
-				$next_flag = "asd";
-				last if $ii ~= $lun_name;
-			}
-
-			next if $next_flag eq "asd";
 
 			my $space_used = $lun_info->child_get_int("size-used");
 			my $space_total = $lun_info->child_get_int("size");
@@ -121,7 +110,7 @@ while(defined($next)){
 			my $space_percent = sprintf ("%.3f", $space_used/$space_total*100);
 
 			$space_used = $space_used / 1048576;
-			$space_total = $space_total / 1048576
+			$space_total = $space_total / 1048576;
 
 			if($space_percent>=$SizeCritical){
 				if($crit_msg){
@@ -183,8 +172,7 @@ check_cdot_lun - Check Lun Usage
 
 check_cdot_lun.pl --hostname HOSTNAME --username USERNAME \
            --password PASSWORD --size-warning PERCENT_WARNING \
-           --size-critical PERCENT_CRITICAL (--volume VOLUME) \
-           --exclude LUN_TO_EXCLUDE
+           --size-critical PERCENT_CRITICAL (--volume VOLUME) 
 
 =head1 DESCRIPTION
 
@@ -218,10 +206,6 @@ The Critical threshold
 =item --volume VOLUME
 
 Optional: The name of the Volume where are located the Luns that need to be checked
-
-=item --exclude
-
-Optional: The name of a lun that has to be excluded from the checks (multiple exclude item for multiple volumes)
 
 =item -help
 
