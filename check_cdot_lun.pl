@@ -26,6 +26,7 @@ GetOptions(
     'size-critical=i' => \my $SizeCritical,
     'volume=s'   => \my $Volume,
     'vserver=s'	 => \my $Vserver,
+    'perf'     => \my $perf,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -122,18 +123,21 @@ while(defined($next)){
 				} else {
 					$crit_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
+				if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
 			} elsif ($space_percent>=$SizeWarning){
 				if($warn_msg){
 					$warn_msg .= ", $lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				} else {
 					$warn_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
+				if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
 			} else {
 				if($ok_msg){
 					$ok_msg .= ", $lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				} else {
 					$ok_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
+				if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
 			}
 
 		}
@@ -176,7 +180,7 @@ check_cdot_lun - Check Lun Usage
 
 check_cdot_lun.pl --hostname HOSTNAME --username USERNAME \
            --password PASSWORD --size-warning PERCENT_WARNING \
-           --size-critical PERCENT_CRITICAL (--volume VOLUME) 
+           --size-critical PERCENT_CRITICAL (--volume VOLUME) (--perf)
 
 =head1 DESCRIPTION
 
@@ -214,6 +218,10 @@ Optional: The name of the Volume where the Luns that need to be checked are loca
 =item --vserver VSERVER
 
 Optional: The name of the Vserver where the Luns that need to be checked are located
+
+=item --perf
+
+Flag for performance data output
 
 =item -help
 
