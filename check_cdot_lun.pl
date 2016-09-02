@@ -97,13 +97,6 @@ while(defined($next)){
 
 	my $matching_volumes = @result;
 
-	if($Volume){
-		if($matching_volumes>1){
-			print "CRITICAL: more than one volume matching this name";
-			exit 2;
-		}
-	}
-
 	foreach my $lun_info (@result){
 
 		if ($lun_info) {
@@ -123,21 +116,21 @@ while(defined($next)){
 				} else {
 					$crit_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
-				if($perf){ $crit_msg .= "|size=$space_percent%;$SizeWarning;$SizeCritical"; }
+				if($perf){ $crit_msg .= "|'$lun_path'=$space_percent%;$SizeWarning;$SizeCritical "; }
 			} elsif ($space_percent>=$SizeWarning){
 				if($warn_msg){
 					$warn_msg .= ", $lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				} else {
 					$warn_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
-				if($perf){ $warn_msg .= "|size=$space_percent%;$SizeWarning;$SizeCritical";}
+				if($perf){ $warn_msg .= "|'$lun_path'=$space_percent%;$SizeWarning;$SizeCritical ";}
 			} else {
 				if($ok_msg){
 					$ok_msg .= ", $lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				} else {
 					$ok_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
-				if($perf) { $ok_msg .= "|size=$space_percent%;$SizeWarning;$SizeCritical";}
+				if($perf) { $ok_msg .= "|'$lun_path'=$space_percent%;$SizeWarning;$SizeCritical ";}
 			}
 
 		}
