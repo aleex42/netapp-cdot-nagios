@@ -25,6 +25,7 @@ GetOptions(
     'size-warning=i'  => \my $SizeWarning,
     'size-critical=i' => \my $SizeCritical,
     'volume=s'   => \my $Volume,
+    'vserver=s'	 => \my $Vserver,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -62,10 +63,13 @@ $xi1->child_add_string('state','<state>');
 $xi1->child_add_string('volume','<volume>');
 my $xi2 = new NaElement('query');
 $iterator->child_add($xi2);
+my $xi3 = new NaElement('lun-info');
+$xi2->child_add($xi3);
 if($Volume){
-	my $xi3 = new NaElement('lun-info');
-	$xi2->child_add($xi3);
 	$xi3->child_add_string('volume',$Volume);
+}
+if($Vserver){
+	$xi3->child_add_string('vserver',$Vserver);
 }
 my $next = '';
 
@@ -205,7 +209,11 @@ The Critical threshold
 
 =item --volume VOLUME
 
-Optional: The name of the Volume where are located the Luns that need to be checked
+Optional: The name of the Volume where the Luns that need to be checked are located
+
+=item --vserver VSERVER
+
+Optional: The name of the Vserver where the Luns that need to be checked are located
 
 =item -help
 
