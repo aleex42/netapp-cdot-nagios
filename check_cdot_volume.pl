@@ -141,21 +141,21 @@ while(defined($next)){
 	            } else {
 	                $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            }
-	            if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
+	            if($perf){ $crit_msg .= "|$vol_name=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
 	        } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
 	            if($warn_msg){
 	                $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            } else {
 	                $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            }
-	            if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+	            if($perf){ $warn_msg .= "|$vol_name=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
 	        } else {
 	            if($ok_msg){
 	                $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            } else {
 	                $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            }
-	            if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+	            if($perf) { $ok_msg .= "|$vol_name=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
 	        }
 	    } 
 	}
