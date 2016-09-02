@@ -123,21 +123,21 @@ while(defined($next)){
 				} else {
 					$crit_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
-				if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
+				if($perf){ $crit_msg .= "|size=$space_percent%;$SizeWarning;$SizeCritical"; }
 			} elsif ($space_percent>=$SizeWarning){
 				if($warn_msg){
 					$warn_msg .= ", $lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				} else {
 					$warn_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
-				if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+				if($perf){ $warn_msg .= "|size=$space_percent%;$SizeWarning;$SizeCritical";}
 			} else {
 				if($ok_msg){
 					$ok_msg .= ", $lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				} else {
 					$ok_msg .= "$lun_path (Usage: $space_used/$space_total MB; $space_percent%)";
 				}
-				if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
+				if($perf) { $ok_msg .= "|size=$space_percent%;$SizeWarning;$SizeCritical";}
 			}
 
 		}
