@@ -95,7 +95,9 @@ while(defined($next)){
             if($age >= $AgeOpt){
                 unless(grep(/$vol_name/, @snapmirrors)){
                     my $snap_name  = $snap->child_get_string("name");
-                    push @old_snapshots, "$vol_name/$snap_name";
+                    unless($snap_name =~ m/^clone/){
+                        push @old_snapshots, "$vol_name/$snap_name";
+                    }
                 }
             }
         }
