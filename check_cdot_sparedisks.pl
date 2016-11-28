@@ -23,70 +23,70 @@ GetOptions(
     'username=s' => \my $Username,
     'password=s' => \my $Password,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
-) or Error("$0: Error in command line arguments\n");
+) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
-    print "$0: " . $_[0] . "\n";
+    print "$0: ".$_[0]."\n";
     exit 2;
 }
-Error('Option --hostname needed!') unless $Hostname;
-Error('Option --username needed!') unless $Username;
-Error('Option --password needed!') unless $Password;
+Error( 'Option --hostname needed!' ) unless $Hostname;
+Error( 'Option --username needed!' ) unless $Username;
+Error( 'Option --password needed!' ) unless $Password;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
-$s->set_transport_type("HTTPS");
-$s->set_style("LOGIN");
+$s->set_transport_type( "HTTPS" );
+$s->set_style( "LOGIN" );
 $s->set_admin_user( $Username, $Password );
 
-my $iterator = NaElement->new("storage-disk-get-iter");
-my $tag_elem = NaElement->new("tag");
-$iterator->child_add($tag_elem);
+my $iterator = NaElement->new( "storage-disk-get-iter" );
+my $tag_elem = NaElement->new( "tag" );
+$iterator->child_add( $tag_elem );
 
 my $next = "";
 my ($not_zeroed, $not_assigned);
 
-while(defined($next)){
-	unless($next eq ""){
-		$tag_elem->set_content($next);    
-	}
+while(defined( $next )){
+    unless ($next eq "") {
+        $tag_elem->set_content( $next );
+    }
 
-	$iterator->child_add_string("max-records", 100);
-	my $output = $s->invoke_elem($iterator);
+    $iterator->child_add_string( "max-records", 100 );
+    my $output = $s->invoke_elem( $iterator );
 
-	if ($output->results_errno != 0) {
-		my $r = $output->results_reason();
-		print "UNKNOWN: $r\n";
-		exit 3;
-	}
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
 
-	my $disks = $output->child_get("attributes-list");
-	my @result = $disks->children_get();
+    my $disks = $output->child_get( "attributes-list" );
+    my @result = $disks->children_get();
 
-	foreach my $disk (@result) {
+    foreach my $disk (@result) {
 
-		my $raid_info = $disk->child_get("disk-raid-info");
-		my $type = $raid_info->child_get_string("container-type");
+        my $raid_info = $disk->child_get( "disk-raid-info" );
+        my $type = $raid_info->child_get_string( "container-type" );
 
-		if($type eq "spare"){
-			my $spare_info = $raid_info->child_get("disk-spare-info");
-			my $zeroed = $spare_info->child_get_string('is-zeroed');
+        if ($type eq "spare") {
+            my $spare_info = $raid_info->child_get( "disk-spare-info" );
+            my $zeroed = $spare_info->child_get_string( 'is-zeroed' );
 
-			if($zeroed eq "false"){
-				$not_zeroed++;
-			}
-		} elsif($type eq "unassigned"){
-			$not_assigned++;
-		}
-	}
-    $next = $output->child_get_string("next-tag");
+            if ($zeroed eq "false") {
+                $not_zeroed++;
+            }
+        } elsif ($type eq "unassigned") {
+            $not_assigned++;
+        }
+    }
+    $next = $output->child_get_string( "next-tag" );
 }
 
-if ($not_zeroed){
+if ($not_zeroed) {
     print "CRITICAL: $not_zeroed spare disk(s) not zeroed\n";
     exit 2;
-} elsif($not_assigned){
-	print "CRITICAL: $not_assigned disk(s) not assigned\n";
-	exit 2;
+} elsif ($not_assigned) {
+    print "CRITICAL: $not_assigned disk(s) not assigned\n";
+    exit 2;
 } else {
     print "All spare disks zeroed\n";
     exit 0;
@@ -98,11 +98,11 @@ __END__
 
 =head1 NAME
 
-check_cdot_spare_disk - Checks Spare and Unassigned Disks
+check_cdot_sparedisks - Checks Spare and Unassigned Disks
 
 =head1 SYNOPSIS
 
-check_cdot_sparedisk.pl --hostname HOSTNAME \
+check_cdot_sparedisks.pl --hostname HOSTNAME \
     --username USERNAME --password PASSWORD
 
 =head1 DESCRIPTION

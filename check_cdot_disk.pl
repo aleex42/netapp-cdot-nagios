@@ -20,72 +20,72 @@ use Getopt::Long;
 use Data::Dumper;
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
+    'hostname=s'  => \my $Hostname,
+    'username=s'  => \my $Username,
+    'password=s'  => \my $Password,
     'diskcount=i' => \my $Diskcount,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
-) or Error("$0: Error in command line arguments\n");
+    'help|?'      => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
-    print "$0: " . $_[0] . "\n";
+    print "$0: ".$_[0]."\n";
     exit 2;
 }
-Error('Option --hostname needed!') unless $Hostname;
-Error('Option --username needed!') unless $Username;
-Error('Option --password needed!') unless $Password;
+Error( 'Option --hostname needed!' ) unless $Hostname;
+Error( 'Option --username needed!' ) unless $Username;
+Error( 'Option --password needed!' ) unless $Password;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
-$s->set_transport_type("HTTPS");
-$s->set_style("LOGIN");
+$s->set_transport_type( "HTTPS" );
+$s->set_style( "LOGIN" );
 $s->set_admin_user( $Username, $Password );
 
-my $iterator = NaElement->new("storage-disk-get-iter");
-my $tag_elem = NaElement->new("tag");
-$iterator->child_add($tag_elem);
+my $iterator = NaElement->new( "storage-disk-get-iter" );
+my $tag_elem = NaElement->new( "tag" );
+$iterator->child_add( $tag_elem );
 
 my $next = "";
 my $disk_count = 0;
 my @disk_list;
 
-while(defined($next)){
-    unless($next eq ""){
-        $tag_elem->set_content($next);    
+while(defined( $next )){
+    unless ($next eq "") {
+        $tag_elem->set_content( $next );
     }
 
-    $iterator->child_add_string("max-records", 100);
-    my $output = $s->invoke_elem($iterator);
+    $iterator->child_add_string( "max-records", 100 );
+    my $output = $s->invoke_elem( $iterator );
 
-	if ($output->results_errno != 0) {
-    	my $r = $output->results_reason();
-    	print "UNKNOWN: $r\n";
-    	exit 3;
-	}
-	
-	my $disks = $output->child_get("attributes-list");
-	my @result = $disks->children_get();
-	
-	foreach my $disk (@result) {
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
 
-        my $raid_type = $disk->child_get("disk-raid-info");
-        my $container = $raid_type->child_get_string('container-type');
-	
-	    $disk_count++;
-	
-	    my $owner = $disk->child_get("disk-ownership-info");
-	    my $diskstate = $owner->child_get_string('is-failed');
-	    if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
-	        push @disk_list, $disk->child_get_string('disk-name');
-	    }
-	}
-	$next = $output->child_get_string("next-tag");
+    my $disks = $output->child_get( "attributes-list" );
+    my @result = $disks->children_get();
+
+    foreach my $disk (@result) {
+
+        my $raid_type = $disk->child_get( "disk-raid-info" );
+        my $container = $raid_type->child_get_string( 'container-type' );
+
+        $disk_count++;
+
+        my $owner = $disk->child_get( "disk-ownership-info" );
+        my $diskstate = $owner->child_get_string( 'is-failed' );
+        if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
+            push @disk_list, $disk->child_get_string( 'disk-name' );
+        }
+    }
+    $next = $output->child_get_string( "next-tag" );
 }
 
 if (@disk_list) {
-    print "CRITICAL" . @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . "\n";
+    print "CRITICAL".@disk_list.' failed disk(s): '.join( ', ', @disk_list )."\n";
     exit 2;
-} elsif(($Diskcount) && ($Diskcount ne $disk_count)){
-    my $diff = $Diskcount-$disk_count;
+} elsif (($Diskcount) && ($Diskcount ne $disk_count)) {
+    my $diff = $Diskcount - $disk_count;
     print "CRITICAL: $diff disk(s) missing\n";
     exit 2;
 } else {
