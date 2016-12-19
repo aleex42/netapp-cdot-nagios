@@ -16,18 +16,18 @@ use warnings;
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'size-warning=i'  => \my $SizeWarning,
-    'size-critical=i' => \my $SizeCritical,
+    'H|hostname=s' => \my $Hostname,
+    'u|username=s' => \my $Username,
+    'p|password=s' => \my $Password,
+    'w|size-warning=i'  => \my $SizeWarning,
+    'c|size-critical=i' => \my $SizeCritical,
     'inode-warning=i'  => \my $InodeWarning,
     'inode-critical=i' => \my $InodeCritical,
-    'perf'     => \my $perf,
-    'volume=s'   => \my $Volume,
+    'P|perf'     => \my $perf,
+    'V|volume=s'   => \my $Volume,
     'exclude=s'	 =>	\my @excludelistarray,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -195,10 +195,10 @@ check_cdot_volume - Check Volume Usage
 
 =head1 SYNOPSIS
 
-check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD --size-warning PERCENT_WARNING \
-           --size-critical PERCENT_CRITICAL --inode-warning PERCENT_WARNING \
-           --inode-critical PERCENT_CRITICAL (--volume VOLUME) (--perf)
+check_cdot_aggr.pl -H HOSTNAME -u USERNAME -p PASSWORD \
+           -w PERCENT_WARNING -c PERCENT_CRITICAL \
+	   --inode-warning PERCENT_WARNING \
+           --inode-critical PERCENT_CRITICAL [-V VOLUME] [-P]
 
 =head1 DESCRIPTION
 
@@ -209,15 +209,15 @@ if warning or critical Thresholds are reached
 
 =over 4
 
-=item --hostname FQDN
+=item -H | --hostname FQDN
 
 The Hostname of the NetApp to monitor
 
-=item --username USERNAME
+=item -u | --username USERNAME
 
 The Login Username of the NetApp to monitor
 
-=item --password PASSWORD
+=item -p | --password PASSWORD
 
 The Login Password of the NetApp to monitor
 
@@ -237,11 +237,11 @@ The Warning threshold
 
 The Critical threshold
 
-=item --volume VOLUME
+=item -V | --volume VOLUME
 
 Optional: The name of the Volume to check
 
-=item --perf
+=item -P --perf
 
 Flag for performance data output
 
