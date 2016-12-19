@@ -231,11 +231,11 @@ The Critical threshold
 
 =item --inode-warning PERCENT_WARNING
 
-The Warning threshold
+The Warning threshold for inodes (files). Defaults to 65% if not given.
 
 =item --inode-critical PERCENT_CRITICAL
 
-The Critical threshold
+The Critical threshold for inodes (files). Defaults to 85% if not given.
 
 =item -V | --volume VOLUME
 
