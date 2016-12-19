@@ -220,7 +220,7 @@ check_cdot_global.pl - Checks health status ( powersupplys, fans, ... )
 =head1 SYNOPSIS
 
 check_cdot_global -H HOSTNAME -u USERNAME \
-           -p PASSWORD --plugin fan
+           -p PASSWORD --plugin PLUGIN
 
 =head1 DESCRIPTION
 
