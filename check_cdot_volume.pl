@@ -44,8 +44,8 @@ Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 Error('Option --size-warning needed!')  unless $SizeWarning;
 Error('Option --size-critical needed!') unless $SizeCritical;
-Error('Option --inode-warning needed!')  unless $InodeWarning;
-Error('Option --inode-critical needed!') unless $InodeCritical;
+$InodeWarning = 65 unless $InodeWarning;
+$InodeCritical = 85 unless $InodeCritical;
 
 my ($crit_msg, $warn_msg, $ok_msg);
 
