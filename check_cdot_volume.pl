@@ -182,20 +182,20 @@ foreach my $vol ( keys(%perfdata) ) {
 if($crit_msg){
     print "CRITICAL: $crit_msg\n";
     if($warn_msg){
-        print "WARNING: $warn_msg\n";
+        print "WARNING: $warn_msg |$perfdatastr\n";
     }
     if($ok_msg){
-        print "OK: $ok_msg\n";
+        print "OK: $ok_msg |$perfdatastr\n";
     }
     exit 2;
 } elsif($warn_msg){
-    print "WARNING: $warn_msg\n";
+    print "WARNING: $warn_msg |$perfdatastr\n";
     if($ok_msg){
-        print "OK: $ok_msg\n";
+        print "OK: $ok_msg |$perfdatastr\n";
     }
     exit 1;
 } elsif($ok_msg){
-    print "OK: $ok_msg | $perfdatastr\n";
+    print "OK: $ok_msg |$perfdatastr\n";
     exit 0;
 } else {
     print "WARNING: no online volume found\n";
