@@ -29,7 +29,7 @@ GetOptions(
     'P|perf'     => \my $perf,
     'V|volume=s'   => \my $Volume,
     'exclude=s'	 =>	\my @excludelistarray,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 my %Excludelist;
@@ -48,6 +48,8 @@ $InodeWarning = 65 unless $InodeWarning;
 $InodeCritical = 85 unless $InodeCritical;
 
 my ($crit_msg, $warn_msg, $ok_msg);
+# Store all perf data points for output at end
+my %perfdata=();
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
@@ -68,6 +70,8 @@ $xi2->child_add_string('name','<name>');
 my $xi3 = new NaElement('volume-space-attributes');
 $xi1->child_add($xi3);
 $xi3->child_add_string('percentage-size-used','<percentage-size-used>');
+$xi3->child_add_string('size-used', '<size-used>');
+$xi3->child_add_string('size-total', '<size-total>');
 my $xi13 = new NaElement('volume-inode-attributes');
 $xi1->child_add($xi13);
 $xi13->child_add_string('files-total','<files-total>');
@@ -82,6 +86,7 @@ if($Volume){
     $xi6->child_add_string('name',$Volume);
 }
 my $next = "";
+use Data::Dumper;
 
 while(defined($next)){
     unless($next eq ""){
@@ -98,6 +103,7 @@ while(defined($next)){
 	}
 	
 	my $volumes = $output->child_get("attributes-list");
+	#print Dumper $volumes;
 	
 	unless($volumes){
 	    print "CRITICAL: no volume matching this name\n";
@@ -110,7 +116,7 @@ while(defined($next)){
 
 	if($Volume){
 	    if($matching_volumes > 1){
-	        print "CRITICAL: more than one volume matching this name";
+	        print "CRITICAL: more than one volume matching this name\n";
 	        exit 2;
 	    }
 	}
@@ -135,31 +141,42 @@ while(defined($next)){
 	    
 	        my $percent = $vol_space->child_get_int("percentage-size-used");
 	
+		$perfdata{$vol_name}{'byte_used'}=$vol_space->child_get_int("size-used");
+		$perfdata{$vol_name}{'byte_total'}=$vol_space->child_get_int("size-total");
+		$perfdata{$vol_name}{'inode_used'}=$inode_used;
+		$perfdata{$vol_name}{'inode_total'}=$inode_total;
+
 	        if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
 	            if($crit_msg){
 	                $crit_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            } else {
 	                $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            }
-	            if($perf){ $crit_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical"; }
 	        } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
 	            if($warn_msg){
 	                $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            } else {
 	                $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            }
-	            if($perf){ $warn_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
 	        } else {
 	            if($ok_msg){
 	                $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            } else {
 	                $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
 	            }
-	            if($perf) { $ok_msg .= "|size=$percent%;$SizeWarning;$SizeCritical inode=$inode_percent%;$InodeWarning;$InodeCritical";}
 	        }
 	    } 
 	}
 	$next = $output->child_get_string("next-tag");
+}
+
+# Build perf data string for output
+my $perfdatastr="";
+foreach my $vol ( keys(%perfdata) ) {
+    $perfdatastr.=sprintf(" %s_space_used=%dBytes;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
+	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100 );
+    $perfdatastr.=sprintf(" %s_inode_used=%d;%d;%d", $vol, $perfdata{$vol}{'inode_used'},
+	$InodeWarning*$perfdata{$vol}{'inode_total'}/100, $InodeCritical*$perfdata{$vol}{'inode_total'}/100 );
 }
 
 if($crit_msg){
@@ -178,7 +195,7 @@ if($crit_msg){
     }
     exit 1;
 } elsif($ok_msg){
-    print "OK: $ok_msg\n";
+    print "OK: $ok_msg | $perfdatastr\n";
     exit 0;
 } else {
     print "WARNING: no online volume found\n";
