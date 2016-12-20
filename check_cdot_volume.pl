@@ -72,6 +72,8 @@ $xi1->child_add($xi3);
 $xi3->child_add_string('percentage-size-used','<percentage-size-used>');
 $xi3->child_add_string('size-used', '<size-used>');
 $xi3->child_add_string('size-total', '<size-total>');
+$xi3->child_add_string('snapshot-reserve-size', '<snapshot-reserve-size>');
+$xi3->child_add_string('size-used-by-snapshots', '<size-used-by-snapshots>');
 my $xi13 = new NaElement('volume-inode-attributes');
 $xi1->child_add($xi13);
 $xi13->child_add_string('files-total','<files-total>');
@@ -86,7 +88,6 @@ if($Volume){
     $xi6->child_add_string('name',$Volume);
 }
 my $next = "";
-use Data::Dumper;
 
 while(defined($next)){
     unless($next eq ""){
@@ -138,13 +139,16 @@ while(defined($next)){
 	        next if exists $Excludelist{$vol_name};
 	    
 	        my $vol_space = $vol->child_get("volume-space-attributes");
-	    
 	        my $percent = $vol_space->child_get_int("percentage-size-used");
+		my $snaptotal = $vol_space->child_get_int("snapshot-reserve-size");
+		my $snapused = $vol_space->child_get_int("size-used-by-snapshots");
 	
 		$perfdata{$vol_name}{'byte_used'}=$vol_space->child_get_int("size-used");
 		$perfdata{$vol_name}{'byte_total'}=$vol_space->child_get_int("size-total");
 		$perfdata{$vol_name}{'inode_used'}=$inode_used;
 		$perfdata{$vol_name}{'inode_total'}=$inode_total;
+		$perfdata{$vol_name}{'snap_total'}=$snaptotal;
+		$perfdata{$vol_name}{'snap_used'}=$snapused;
 
 	        if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
 	            if($crit_msg){
@@ -173,10 +177,22 @@ while(defined($next)){
 # Build perf data string for output
 my $perfdatastr="";
 foreach my $vol ( keys(%perfdata) ) {
-    $perfdatastr.=sprintf(" %s_space_used=%dBytes;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
-	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100 );
-    $perfdatastr.=sprintf(" %s_inode_used=%d;%d;%d", $vol, $perfdata{$vol}{'inode_used'},
-	$InodeWarning*$perfdata{$vol}{'inode_total'}/100, $InodeCritical*$perfdata{$vol}{'inode_total'}/100 );
+    # DS[1] - Data space used
+    $perfdatastr.=sprintf(" %s_space_used=%dBytes;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
+	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
+	0, $perfdata{$vol}{'byte_total'} );
+    # DS[2] - Inodes used
+    $perfdatastr.=sprintf(" %s_inode_used=%d;%d;%d;%d;%d", $vol, $perfdata{$vol}{'inode_used'},
+	$InodeWarning*$perfdata{$vol}{'inode_total'}/100, $InodeCritical*$perfdata{$vol}{'inode_total'}/100,
+	0, $perfdata{$vol}{'inode_total'} );
+    # DS[3] - Snapshot space used
+    $perfdatastr.=sprintf(" %s_snap_used=%dBytes;;;%d;%d", $vol, $perfdata{$vol}{'snap_used'},
+	0, $perfdata{$vol}{'snap_total'} );
+    # DS[4] - Data total space
+    $perfdatastr.=sprintf(" %s_data_total=%dBytes", $vol, $perfdata{$vol}{'byte_total'} );
+    # DS[5] - Snap total space
+    $perfdatastr.=sprintf(" %s_snap_total=%dBytes", $vol, $perfdata{$vol}{'snap_total'} );
+
 }
 
 if($crit_msg){
