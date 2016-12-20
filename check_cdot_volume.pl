@@ -26,6 +26,8 @@ GetOptions(
     'c|size-critical=i' => \my $SizeCritical,
     'inode-warning=i'  => \my $InodeWarning,
     'inode-critical=i' => \my $InodeCritical,
+    'snap-warning=i' => \my $SnapWarning,
+    'snap-critical=i' => \my $SnapCritical,
     'P|perf'     => \my $perf,
     'V|volume=s'   => \my $Volume,
     'exclude=s'	 =>	\my @excludelistarray,
@@ -44,8 +46,13 @@ Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 Error('Option --size-warning needed!')  unless $SizeWarning;
 Error('Option --size-critical needed!') unless $SizeCritical;
+
+# Set some conservative default thresholds for the more
+# esoteric metrics
 $InodeWarning = 65 unless $InodeWarning;
 $InodeCritical = 85 unless $InodeCritical;
+$SnapWarning = 75 unless $SnapWarning;
+$SnapCritical = 90 unless $SnapCritical;
 
 my ($crit_msg, $warn_msg, $ok_msg);
 # Store all perf data points for output at end
@@ -74,6 +81,7 @@ $xi3->child_add_string('size-used', '<size-used>');
 $xi3->child_add_string('size-total', '<size-total>');
 $xi3->child_add_string('snapshot-reserve-size', '<snapshot-reserve-size>');
 $xi3->child_add_string('size-used-by-snapshots', '<size-used-by-snapshots>');
+$xi3->child_add_string('percentage-snapshot-reserve-used', '<percentage-snapshot-reserve-used>');
 my $xi13 = new NaElement('volume-inode-attributes');
 $xi1->child_add($xi13);
 $xi13->child_add_string('files-total','<files-total>');
@@ -88,6 +96,8 @@ if($Volume){
     $xi6->child_add_string('name',$Volume);
 }
 my $next = "";
+
+my (@crit_msg, @warn_msg, @ok_msg);
 
 while(defined($next)){
     unless($next eq ""){
@@ -112,7 +122,6 @@ while(defined($next)){
 	}
 	
 	my @result = $volumes->children_get();
-	
 	my $matching_volumes = @result;
 
 	if($Volume){
@@ -142,6 +151,7 @@ while(defined($next)){
 	        my $percent = $vol_space->child_get_int("percentage-size-used");
 		my $snaptotal = $vol_space->child_get_int("snapshot-reserve-size");
 		my $snapused = $vol_space->child_get_int("size-used-by-snapshots");
+		my $snapusedpct = $vol_space->child_get_int("percentage-snapshot-reserve-used");
 	
 		$perfdata{$vol_name}{'byte_used'}=$vol_space->child_get_int("size-used");
 		$perfdata{$vol_name}{'byte_total'}=$vol_space->child_get_int("size-total");
@@ -151,24 +161,17 @@ while(defined($next)){
 		$perfdata{$vol_name}{'snap_used'}=$snapused;
 
 	        if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
-	            if($crit_msg){
-	                $crit_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-	            } else {
-	                $crit_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-	            }
+		    push (@crit_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
 	        } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
-	            if($warn_msg){
-	                $warn_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-	            } else {
-	                $warn_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-	            }
+		    push (@warn_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
 	        } else {
-	            if($ok_msg){
-	                $ok_msg .= ", $vol_name (Size: $percent%, Inodes: $inode_percent%)";
-	            } else {
-	                $ok_msg .= "$vol_name (Size: $percent%, Inodes: $inode_percent%)";
-	            }
+		    push (@ok_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
 	        }
+		if($snapusedpct >= $SnapCritical) {
+		    push (@crit_msg, "$vol_name has used $snapusedpct% of snapshot reserve.");
+		} elsif ($snapusedpct >= $SnapWarning) {
+		    push (@warn_msg, "$vol_name has used $snapusedpct% of snapshot reserve.");
+		}
 	    } 
 	}
 	$next = $output->child_get_string("next-tag");
@@ -195,23 +198,20 @@ foreach my $vol ( keys(%perfdata) ) {
 
 }
 
-if($crit_msg){
-    print "CRITICAL: $crit_msg\n";
-    if($warn_msg){
-        print "WARNING: $warn_msg |$perfdatastr\n";
-    }
-    if($ok_msg){
-        print "OK: $ok_msg |$perfdatastr\n";
-    }
+if(scalar(@crit_msg) ){
+    print "CRITICAL: ";
+    print join (" ", @crit_msg, @warn_msg, @ok_msg);
+    print "|$perfdatastr\n";
     exit 2;
-} elsif($warn_msg){
-    print "WARNING: $warn_msg |$perfdatastr\n";
-    if($ok_msg){
-        print "OK: $ok_msg |$perfdatastr\n";
-    }
+} elsif(scalar(@warn_msg) ){
+    print "WARNING: ";
+    print join (" ", @crit_msg, @warn_msg, @ok_msg);
+    print "|$perfdatastr\n";
     exit 1;
-} elsif($ok_msg){
-    print "OK: $ok_msg |$perfdatastr\n";
+} elsif(scalar(@ok_msg) ){
+    print "OK: ";
+    print join (" ", @crit_msg, @warn_msg, @ok_msg);
+    print "|$perfdatastr\n";
     exit 0;
 } else {
     print "WARNING: no online volume found\n";
@@ -230,6 +230,8 @@ check_cdot_volume - Check Volume Usage
 
 check_cdot_aggr.pl -H HOSTNAME -u USERNAME -p PASSWORD \
            -w PERCENT_WARNING -c PERCENT_CRITICAL \
+	   --snap-warning PERCENT_WARNING \
+	   --snap-critical PERCENT_CRITICAL \
 	   --inode-warning PERCENT_WARNING \
            --inode-critical PERCENT_CRITICAL [-V VOLUME] [-P]
 
@@ -256,11 +258,11 @@ The Login Password of the NetApp to monitor
 
 =item --size-warning PERCENT_WARNING
 
-The Warning threshold
+The Warning threshold for data space usage.
 
 =item --size-critical PERCENT_CRITICAL
 
-The Critical threshold
+The Critical threshold for data space usage.
 
 =item --inode-warning PERCENT_WARNING
 
@@ -269,6 +271,14 @@ The Warning threshold for inodes (files). Defaults to 65% if not given.
 =item --inode-critical PERCENT_CRITICAL
 
 The Critical threshold for inodes (files). Defaults to 85% if not given.
+
+=item --snap-warning PERCENT_WARNING
+
+The Warning threshold for snapshot space usage. Defaults to 75%.
+
+=item --snap-critical PERCENT_CRITICAL
+
+The Critical threshold for snapshot space usage. Defaults to 90%.
 
 =item -V | --volume VOLUME
 
