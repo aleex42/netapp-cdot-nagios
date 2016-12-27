@@ -92,9 +92,11 @@ while(defined($next)){
     }
 
     foreach my $getQuota ( $output->child_get("attributes-list")->children_get() ) {
-	my $diskLimit = $getQuota->child_get_string('disk-limit');
+	# Disk limit is in KB
+	my $diskLimit = $getQuota->child_get_string('disk-limit') * 1024;
 	next if ($diskLimit eq "-" or $diskLimit == 0 );
-	my $diskUsed = $getQuota->child_get_string('disk-used');
+	# Also in KB
+	my $diskUsed = $getQuota->child_get_string('disk-used') * 1024;
 	my $fileLimit = $getQuota->child_get_string('file-limit');
 	my $filesUsed = $getQuota->child_get_string('files-used');
 	my $volume = $getQuota->child_get_string('volume');
@@ -114,8 +116,9 @@ while(defined($next)){
 	printf ("Quota %s: %s %s %s %s\n", $target, $diskLimit, $diskUsed, $fileLimit, $filesUsed) if ($verbose);
 	my $diskPercent=($diskUsed/$diskLimit*100);
 
-	my $msg = sprintf ("Quota %s is %d%% full (used %d of %d bytes)",
-	    $target, $diskPercent, $diskUsed, $diskLimit);
+	# Generate pretty-printed scaled numbers
+	my $msg = sprintf ("Quota %s is %d%% full (used %s of %s)",
+	    $target, $diskPercent, humanScale($diskUsed), humanScale($diskLimit) );
 	if ($diskPercent >= $SizeCritical) {
 	    push (@crit_msg, $msg);
 	} elsif ($diskPercent >= $SizeWarning) {
@@ -162,6 +165,21 @@ if(scalar(@crit_msg) ){
 } else {
     print "WARNING: no online volume found\n";
     exit 1;
+}
+
+sub humanScale {
+    my ($metric) = @_;
+    my $unit='B';
+    my @units = qw( KB MB GB TB PB EB );
+    while ($metric > 1100) {
+	if (scalar(@units)<1) {
+	    # Hit our max scaling factor - bail out
+	    last;
+	}
+        $unit=shift(@units);
+	$metric=$metric/1024;
+    }
+    return sprintf("%.1f %s", $metric, $unit);
 }
 
 __END__
