@@ -76,7 +76,6 @@ while(defined($next)){
 	
 	    $disk_count++;
 	
-	    #print Dumper $container
 	    if ( $container eq 'shared' ) {
 	        # Dig deeper
 		my $shared_info = $raid_type->child_get("disk-shared-info");
