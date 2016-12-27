@@ -18,11 +18,15 @@ use NaServer;
 use NaElement;
 use Getopt::Long qw(:config no_ignore_case);
 
+my $critical = 2;
+my $warning = 1;
 GetOptions(
     'H|hostname=s' => \my $Hostname,
     'u|username=s' => \my $Username,
     'p|password=s' => \my $Password,
-    'diskcount=i' => \my $Diskcount,
+    'w|warning=i' => \$warning,
+    'c|critical=i' => \$critical,
+    'd|diskcount=i' => \my $Diskcount,
     'P|perf' => \my $perf,
     'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -123,9 +127,12 @@ my $perfdatastr = sprintf(" | Aggregate=%dDisks Spare=%dDisks Rebuilding=%dDisks
     $inventory{'Aggregate'}, $inventory{'Spare'}, $inventory{'Rebuilding'}, $inventory{'Failed'}
 );
 
-if (@disk_list) {
-    print "CRITICAL" . @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . $perfdatastr ."\n";
+if ( scalar @disk_list >= $critical ) {
+    print "CRITICAL: " . @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . $perfdatastr ."\n";
     exit 2;
+} elsif ( scalar @disk_list >= $warning ) {
+    print "WARNING: " . @disk_list .' failed disk(s): ' .join( ', ', @disk_list ) . $perfdatastr ."\n";
+    exit 1;
 } elsif(($Diskcount) && ($Diskcount ne $disk_count)){
     my $diff = $Diskcount-$disk_count;
     print "CRITICAL: $diff disk(s) missing".$perfdatastr."\n";
@@ -145,7 +152,7 @@ check_cdot_disk - Checks Disk Healthness
 
 =head1 SYNOPSIS
 
-check_cdot_disk.pl -H HOSTNAME -u USERNAME -p PASSWORD 
+check_cdot_disk.pl -H HOSTNAME -u USERNAME -p PASSWORD [-d COUNT]
 
 =head1 DESCRIPTION
 
@@ -166,6 +173,10 @@ The Login Username of the NetApp to monitor
 =item -p | --password PASSWORD
 
 The Login Password of the NetApp to monitor
+
+=item -d | --disks COUNT
+
+Expected number of disks to find
 
 =item -help
 
