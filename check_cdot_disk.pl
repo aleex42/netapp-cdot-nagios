@@ -122,9 +122,10 @@ while(defined($next)){
 	$next = $output->child_get_string("next-tag");
 }
 
-my $perfdatastr = sprintf(" | Aggregate=%dDisks Spare=%dDisks Rebuilding=%dDisks Failed=%dDisks",
+my $perfdatastr='';
+$perfdatastr = sprintf(" | Aggregate=%dDisks Spare=%dDisks Rebuilding=%dDisks Failed=%dDisks",
     $inventory{'Aggregate'}, $inventory{'Spare'}, $inventory{'Rebuilding'}, $inventory{'Failed'}
-);
+) if ($perf);
 
 if ( scalar @disk_list >= $critical ) {
     print "CRITICAL: " . @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . $perfdatastr ."\n";
