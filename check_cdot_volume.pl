@@ -12,7 +12,6 @@
 
 use strict;
 use warnings;
-no warnings 'experimental';
 
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
