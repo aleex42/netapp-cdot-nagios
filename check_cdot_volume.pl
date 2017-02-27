@@ -12,6 +12,7 @@
 
 use strict;
 use warnings;
+no warnings 'experimental';
 
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
@@ -119,10 +120,13 @@ while(defined($next)){
 	foreach my $vol (@result){
 
 	    my $vol_info = $vol->child_get("volume-id-attributes");
-	    my $vol_name = $vol_info->child_get_string("name");
+	    my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
+	    my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
 
 	    if($Volume) {
-	        next if $vol_info->child_get_string("owning-vserver-name") ne $Vserver;
+	        if($vserver_name ne $Vserver) {
+	            next;
+	        }
 	    }
 	
 	    my $inode_info = $vol->child_get("volume-inode-attributes");
