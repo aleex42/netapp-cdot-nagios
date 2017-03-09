@@ -16,14 +16,14 @@ use warnings;
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
+    'H|hostname=s' => \my $Hostname,
+    'u|username=s' => \my $Username,
+    'p|password=s' => \my $Password,
     'plugin=s'   => \my $Plugin,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 sub Error {
@@ -170,9 +170,8 @@ given ($Plugin) {
             print "OK: No failed power supplys\n";
             exit 0;
         }
-	}
+    }
     when("fan"){
-
         if ($sum_failed_fan) {
             print "CRITICAL: $sum_failed_fan failed fan(s): $failed_node\n";
             exit 2;
@@ -180,7 +179,7 @@ given ($Plugin) {
             print "OK: No failed fans\n";
             exit 0;
         }
-	}
+    }
     when("nvram"){
         if ($sum_failed_nvram) {
             print "CRITICAL: $sum_failed_nvram failed nvram(s): $failed_node\n";
@@ -189,7 +188,7 @@ given ($Plugin) {
             print "OK: No failed nvram\n";
             exit 0;
         }
-	}
+    }
     when("temp"){
         if ($sum_failed_temp) {
             print "CRITICAL: Temperature Overheating: $failed_node\n";
@@ -198,16 +197,16 @@ given ($Plugin) {
             print "OK: Temperature OK\n";
             exit 0;
         } 
-	}
-	when("health"){
-		if ($sum_failed_health){
+    }
+    when("health"){
+	    if ($sum_failed_health){
             print "CRITICAL: Health Status Critical: $failed_node\n";
             exit 2;
         } else {
             print "OK: Health Status OK\n";
             exit 0;
         }
-	}
+    }
 }
 
 __END__
@@ -220,8 +219,8 @@ check_cdot_global.pl - Checks health status ( powersupplys, fans, ... )
 
 =head1 SYNOPSIS
 
-check_cdot_global --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD --plugin fan
+check_cdot_global -H HOSTNAME -u USERNAME \
+           -p PASSWORD --plugin PLUGIN
 
 =head1 DESCRIPTION
 
@@ -236,15 +235,15 @@ Checks Health Status of:
 
 =over 4
 
-=item --hostname FQDN
+=item -H | --hostname FQDN
 
 The Hostname of the NetApp to check
 
-=item --username USERNAME
+=item -u | --username USERNAME
 
 The Login Username of the NetApp to check
 
-=item --password PASSWORD
+=item -p | --password PASSWORD
 
 The Login Password of the NetApp to check
 
