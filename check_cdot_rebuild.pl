@@ -16,13 +16,13 @@ use warnings;
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'H|hostname=s' => \my $Hostname,
+    'u|username=s' => \my $Username,
+    'p|password=s' => \my $Password,
+    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 sub Error {
@@ -110,8 +110,7 @@ check_cdot_rebuild - Check Aggregate State
 
 =head1 SYNOPSIS
 
-check_cdot_rebuild.pl --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD 
+check_cdot_rebuild.pl -H HOSTNAME -u USERNAME -p PASSWORD 
 
 =head1 DESCRIPTION
 
@@ -122,19 +121,19 @@ critical if any raidgroup is reconstructing
 
 =over 4
 
-=item --hostname FQDN
+=item -H | --hostname FQDN
 
 The Hostname of the NetApp to monitor
 
-=item --username USERNAME
+=item -u | --username USERNAME
 
 The Login Username of the NetApp to monitor
 
-=item --password PASSWORD
+=item -p | --password PASSWORD
 
 The Login Password of the NetApp to monitor
 
-=item -help
+=item -h | -help
 
 =item -?
 
