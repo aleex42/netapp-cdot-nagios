@@ -72,8 +72,13 @@ while(defined($next)){
         }
 
         my $snaps = $snap_output->child_get("attributes-list");
-        my @snapshots = $snaps->children_get();
 
+        unless($snaps){
+            print "OK - No snapshots\n";
+            exit 0;
+        }
+
+        my @snapshots = $snaps->children_get();
 
         unless(@snapshots){
             print "OK - No snapshots\n";

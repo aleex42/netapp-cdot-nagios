@@ -79,6 +79,12 @@ while(defined($next)){
         }
 
         my $snaps = $snap_output->child_get("attributes-list");
+
+        unless($snaps){
+            print "OK - No snapshots\n";
+            exit 0;
+        }
+
         my @snapshots = $snaps->children_get();
 
         unless(@snapshots){
@@ -95,7 +101,9 @@ while(defined($next)){
             if($age >= $AgeOpt){
                 unless(grep(/$vol_name/, @snapmirrors)){
                     my $snap_name  = $snap->child_get_string("name");
-                    push @old_snapshots, "$vol_name/$snap_name";
+                    unless($snap_name =~ m/^clone/){
+                        push @old_snapshots, "$vol_name/$snap_name";
+                    }
                 }
             }
         }
