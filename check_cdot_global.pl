@@ -18,6 +18,9 @@ use NaServer;
 use NaElement;
 use Getopt::Long qw(:config no_ignore_case);
 
+# ignore warning for experimental 'given'
+no if ($] >= 5.018), 'warnings' => 'experimental';
+
 GetOptions(
     'H|hostname=s' => \my $Hostname,
     'u|username=s' => \my $Username,
