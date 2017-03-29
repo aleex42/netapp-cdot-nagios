@@ -189,7 +189,7 @@ while(defined($next)){
 my $perfdatastr="";
 foreach my $vol ( keys(%perfdata) ) {
     # DS[1] - Data space used
-    $perfdatastr.=sprintf(" %s_space_used=%dBytes;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
+    $perfdatastr.=sprintf(" %s_space_used=%dB;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
 	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
 	0, $perfdata{$vol}{'byte_total'} );
     # DS[2] - Inodes used
@@ -197,12 +197,12 @@ foreach my $vol ( keys(%perfdata) ) {
 	$InodeWarning*$perfdata{$vol}{'inode_total'}/100, $InodeCritical*$perfdata{$vol}{'inode_total'}/100,
 	0, $perfdata{$vol}{'inode_total'} );
     # DS[3] - Snapshot space used
-    $perfdatastr.=sprintf(" %s_snap_used=%dBytes;;;%d;%d", $vol, $perfdata{$vol}{'snap_used'},
+    $perfdatastr.=sprintf(" %s_snap_used=%dB;;;%d;%d", $vol, $perfdata{$vol}{'snap_used'},
 	0, $perfdata{$vol}{'snap_total'} );
     # DS[4] - Data total space
-    $perfdatastr.=sprintf(" %s_data_total=%dBytes", $vol, $perfdata{$vol}{'byte_total'} );
+    $perfdatastr.=sprintf(" %s_data_total=%dB", $vol, $perfdata{$vol}{'byte_total'} );
     # DS[5] - Snap total space
-    $perfdatastr.=sprintf(" %s_snap_total=%dBytes", $vol, $perfdata{$vol}{'snap_total'} );
+    $perfdatastr.=sprintf(" %s_snap_total=%dB", $vol, $perfdata{$vol}{'snap_total'} );
 
 }
 
