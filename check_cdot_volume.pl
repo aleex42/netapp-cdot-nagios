@@ -28,6 +28,7 @@ GetOptions(
     'inode-critical=i' => \my $InodeCritical,
     'snap-warning=i' => \my $SnapWarning,
     'snap-critical=i' => \my $SnapCritical,
+    'snap-ignore=s' => \my $SnapIgnore,
     'P|perf'     => \my $perf,
     'V|volume=s'   => \my $Volume,
     'vserver=s'  => \my $Vserver,
@@ -54,6 +55,7 @@ $InodeWarning = 65 unless $InodeWarning;
 $InodeCritical = 85 unless $InodeCritical;
 $SnapWarning = 75 unless $SnapWarning;
 $SnapCritical = 90 unless $SnapCritical;
+$SnapIgnore = "false" unless $SnapIgnore;
 
 my ($crit_msg, $warn_msg, $ok_msg);
 # Store all perf data points for output at end
@@ -108,81 +110,84 @@ while(defined($next)){
     $iterator->child_add_string("max-records", 100);
     my $output = $s->invoke_elem($iterator);
 
-	if ($output->results_errno != 0) {
-	    my $r = $output->results_reason();
-	    print "UNKNOWN: $r\n";
-	    exit 3;
-	}
-	
-	my $volumes = $output->child_get("attributes-list");
-	#print Dumper $volumes;
-	
-	unless($volumes){
-	    print "CRITICAL: no volume matching this name\n";
-	    exit 2;
-	}
-	
-	my @result = $volumes->children_get();
-	my $matching_volumes = @result;
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
 
-	if($Volume && !$Vserver){
-	    if($matching_volumes > 1){
-	        print "CRITICAL: more than one volume matching this name\n";
-	        exit 2;
-	    }
-	}
-	
-	foreach my $vol (@result){
+    my $volumes = $output->child_get("attributes-list");
 
-	    my $vol_info = $vol->child_get("volume-id-attributes");
-	    my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
-	    my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
+    unless($volumes){
+        print "CRITICAL: no volume matching this name\n";
+        exit 2;
+    }
 
-	    if($Volume) {
-	        if($vserver_name ne $Vserver) {
-	            next;
-	        }
-	    }
-	
-	    my $inode_info = $vol->child_get("volume-inode-attributes");
-	    
-	    if($inode_info){
-	
-	        my $inode_used = $inode_info->child_get_int("files-used");
-	        my $inode_total = $inode_info->child_get_int("files-total");
-	
-	        my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
-	    
-	        next if exists $Excludelist{$vol_name};
-	    
-	        my $vol_space = $vol->child_get("volume-space-attributes");
-	        my $percent = $vol_space->child_get_int("percentage-size-used");
-		my $snaptotal = $vol_space->child_get_int("snapshot-reserve-size");
-		my $snapused = $vol_space->child_get_int("size-used-by-snapshots");
-		my $snapusedpct = $vol_space->child_get_int("percentage-snapshot-reserve-used");
-	
-		$perfdata{$vol_name}{'byte_used'}=$vol_space->child_get_int("size-used");
-		$perfdata{$vol_name}{'byte_total'}=$vol_space->child_get_int("size-total");
-		$perfdata{$vol_name}{'inode_used'}=$inode_used;
-		$perfdata{$vol_name}{'inode_total'}=$inode_total;
-		$perfdata{$vol_name}{'snap_total'}=$snaptotal;
-		$perfdata{$vol_name}{'snap_used'}=$snapused;
+    my @result = $volumes->children_get();
+    my $matching_volumes = @result;
 
-	        if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
-		    push (@crit_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
-	        } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
-		    push (@warn_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
-	        } else {
-		    push (@ok_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
-	        }
-		if($snapusedpct >= $SnapCritical) {
-		    push (@crit_msg, "$vol_name has used $snapusedpct% of snapshot reserve.");
-		} elsif ($snapusedpct >= $SnapWarning) {
-		    push (@warn_msg, "$vol_name has used $snapusedpct% of snapshot reserve.");
-		}
-	    } 
-	}
-	$next = $output->child_get_string("next-tag");
+    if($Volume && !$Vserver){
+        if($matching_volumes > 1){
+            print "CRITICAL: more than one volume matching this name\n";
+            exit 2;
+        }
+    }
+
+    foreach my $vol (@result){
+
+        my $vol_info = $vol->child_get("volume-id-attributes");
+        my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
+        my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
+
+        if($Volume) {
+            if($vserver_name ne $Vserver) {
+                next;
+            }
+        }
+
+        my $inode_info = $vol->child_get("volume-inode-attributes");
+
+        if($inode_info){
+
+            my $inode_used = $inode_info->child_get_int("files-used");
+            my $inode_total = $inode_info->child_get_int("files-total");
+
+            my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
+
+            next if exists $Excludelist{$vol_name};
+
+            my $vol_space = $vol->child_get("volume-space-attributes");
+            my $percent = $vol_space->child_get_int("percentage-size-used");
+            my $snaptotal = $vol_space->child_get_int("snapshot-reserve-size");
+            my $snapused = $vol_space->child_get_int("size-used-by-snapshots");
+            my $snapusedpct = $vol_space->child_get_int("percentage-snapshot-reserve-used");
+
+            $perfdata{$vol_name}{'byte_used'}=$vol_space->child_get_int("size-used");
+            $perfdata{$vol_name}{'byte_total'}=$vol_space->child_get_int("size-total");
+            $perfdata{$vol_name}{'inode_used'}=$inode_used;
+            $perfdata{$vol_name}{'inode_total'}=$inode_total;
+            $perfdata{$vol_name}{'snap_total'}=$snaptotal;
+            $perfdata{$vol_name}{'snap_used'}=$snapused;
+
+            if(($percent>=$SizeCritical) || ($inode_percent>=$InodeCritical)){
+                push (@crit_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
+            } elsif (($percent>=$SizeWarning) || ($inode_percent>=$InodeWarning)){
+                push (@warn_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
+            } else {
+                push (@ok_msg, "$vol_name (Size: $percent%, Inodes: $inode_percent%)" );
+            }
+
+            unless($SnapIgnore eq "true"){
+
+                if($snapusedpct >= $SnapCritical) {
+                    push (@crit_msg, "$vol_name has used $snapusedpct% of snapshot reserve.");
+                } elsif ($snapusedpct >= $SnapWarning) {
+                    push (@warn_msg, "$vol_name has used $snapusedpct% of snapshot reserve.");
+                }
+            } 
+        }
+    }
+    $next = $output->child_get_string("next-tag");
 }
 
 # Build perf data string for output
