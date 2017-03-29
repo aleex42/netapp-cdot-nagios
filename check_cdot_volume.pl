@@ -30,6 +30,7 @@ GetOptions(
     'snap-critical=i' => \my $SnapCritical,
     'P|perf'     => \my $perf,
     'V|volume=s'   => \my $Volume,
+    'vserver=s'  => \my $Vserver,
     'exclude=s'	 =>	\my @excludelistarray,
     'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -124,7 +125,7 @@ while(defined($next)){
 	my @result = $volumes->children_get();
 	my $matching_volumes = @result;
 
-	if($Volume){
+	if($Volume && !$Vserver){
 	    if($matching_volumes > 1){
 	        print "CRITICAL: more than one volume matching this name\n";
 	        exit 2;
@@ -132,6 +133,16 @@ while(defined($next)){
 	}
 	
 	foreach my $vol (@result){
+
+	    my $vol_info = $vol->child_get("volume-id-attributes");
+	    my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
+	    my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
+
+	    if($Volume) {
+	        if($vserver_name ne $Vserver) {
+	            next;
+	        }
+	    }
 	
 	    my $inode_info = $vol->child_get("volume-inode-attributes");
 	    
@@ -142,9 +153,6 @@ while(defined($next)){
 	
 	        my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
 	    
-	        my $vol_info = $vol->child_get("volume-id-attributes");
-	        my $vol_name = $vol_info->child_get_string("name");
-
 	        next if exists $Excludelist{$vol_name};
 	    
 	        my $vol_space = $vol->child_get("volume-space-attributes");
