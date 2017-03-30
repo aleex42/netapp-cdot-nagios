@@ -50,6 +50,9 @@ Plugins
     * check_cdot_interfaces.pl
       Checks Interface Group Status
 
+    * check_cdot_wrong_aggregte.pl
+      Checks dedicated Aggregates for SnapMirror
+
 Examples
 --------
 
