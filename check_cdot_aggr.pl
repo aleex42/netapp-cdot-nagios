@@ -103,7 +103,7 @@ while(defined($next)){
 
         my $aggr_name = $aggr->child_get_string("aggregate-name");
 
-	# Attempt to exclude root aggregates for nodes?
+    	# exclude root aggregates
         unless($aggr_name =~ m/^aggr0_/){
 
             next if exists $Excludelist{$aggr_name};
@@ -125,11 +125,12 @@ while(defined($next)){
             }   
 
             if ($perf) {
-                $perfmsg .= " $aggr_name=$percent%;$Warning;$Critical ".$aggr_name."_Used=$bytesused";
+
+                my $warn_bytes = $Warning*$bytestotal/100;
+                my $crit_bytes = $Critical*$bytestotal/100;
+
+                $perfmsg .= " $aggr_name=${bytesused}B;$warn_bytes;$crit_bytes;0;$bytestotal";
             }
-            else {
-                $perfmsg .= "$aggr_name=$percent%;$Warning;$Critical";
-            }   
         }
     }
 
