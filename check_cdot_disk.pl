@@ -16,15 +16,19 @@ use warnings;
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use Getopt::Long;
-use Data::Dumper;
+use Getopt::Long qw(:config no_ignore_case);
 
+my $critical = 2;
+my $warning = 1;
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'diskcount=i' => \my $Diskcount,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'H|hostname=s' => \my $Hostname,
+    'u|username=s' => \my $Username,
+    'p|password=s' => \my $Password,
+    'w|warning=i' => \$warning,
+    'c|critical=i' => \$critical,
+    'd|diskcount=i' => \my $Diskcount,
+    'P|perf' => \my $perf,
+    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 sub Error {
@@ -47,6 +51,7 @@ $iterator->child_add($tag_elem);
 my $next = "";
 my $disk_count = 0;
 my @disk_list;
+my %inventory = ( 'Spare', 0, 'Rebuilding', 0, 'Aggregate', 0, 'Failed', 0);
 
 while(defined($next)){
     unless($next eq ""){
@@ -66,30 +71,74 @@ while(defined($next)){
 	my @result = $disks->children_get();
 	
 	foreach my $disk (@result) {
-
-        my $raid_type = $disk->child_get("disk-raid-info");
-        my $container = $raid_type->child_get_string('container-type');
+	    my $raid_type = $disk->child_get("disk-raid-info");
+	    my $container = $raid_type->child_get_string('container-type');
 	
 	    $disk_count++;
 	
-	    my $owner = $disk->child_get("disk-ownership-info");
-	    my $diskstate = $owner->child_get_string('is-failed');
-	    if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
-	        push @disk_list, $disk->child_get_string('disk-name');
+	    if ( $container eq 'shared' ) {
+	        # Dig deeper
+		my $shared_info = $raid_type->child_get("disk-shared-info");
+		my $temp = $shared_info->child_get_string('is-reconstructing');
+		if ($temp eq 'true') {
+		    $inventory{'Rebuilding'}++;
+		} else {
+		    $temp = $shared_info->child_get_string('is-replacing');
+		    if ($temp eq 'true') {
+			# Also count as Rebuilding
+			$inventory{'Rebuilding'}++;
+		    } else {
+		    	$inventory{'Aggregate'}++;
+		    }
+		}
+	    } elsif ( $container eq 'spare' ) {
+	    	$inventory{'Spare'}++;
+	    } elsif ( $container eq 'aggregate' ) {
+	    	# Dig deeper
+		my $aggr_info = $raid_type->child_get('disk-aggregate-info');
+		my $temp = $aggr_info->child_get_string('is-reconstructing');
+		if ($temp eq 'true') {
+		    $inventory{'Rebuilding'}++;
+		} else {
+		    $temp = $aggr_info->child_get_string('is-replacing');
+		    if ($temp eq 'true') {
+			# Also count as Rebuilding
+			$inventory{'Rebuilding'}++;
+		    } else {
+		        $inventory{'Aggregate'}++;
+		    }
+		}
+	    } else {
+		my $owner = $disk->child_get("disk-ownership-info");
+		my $diskstate = $owner->child_get_string('is-failed');
+		if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
+		    push @disk_list, $disk->child_get_string('disk-name');
+		    $inventory{'Failed'}++;
+		} else {
+		    $inventory{'Aggregate'}++;
+		}
 	    }
 	}
 	$next = $output->child_get_string("next-tag");
 }
 
-if (@disk_list) {
-    print "CRITICAL" . @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . "\n";
+my $perfdatastr='';
+$perfdatastr = sprintf(" | Aggregate=%dDisks Spare=%dDisks Rebuilding=%dDisks Failed=%dDisks",
+    $inventory{'Aggregate'}, $inventory{'Spare'}, $inventory{'Rebuilding'}, $inventory{'Failed'}
+) if ($perf);
+
+if ( scalar @disk_list >= $critical ) {
+    print "CRITICAL: " . @disk_list . ' failed disk(s): ' . join( ', ', @disk_list ) . $perfdatastr ."\n";
     exit 2;
+} elsif ( scalar @disk_list >= $warning ) {
+    print "WARNING: " . @disk_list .' failed disk(s): ' .join( ', ', @disk_list ) . $perfdatastr ."\n";
+    exit 1;
 } elsif(($Diskcount) && ($Diskcount ne $disk_count)){
     my $diff = $Diskcount-$disk_count;
-    print "CRITICAL: $diff disk(s) missing\n";
+    print "CRITICAL: $diff disk(s) missing".$perfdatastr."\n";
     exit 2;
 } else {
-    print "OK: All $disk_count disks OK\n";
+    print "OK: All $disk_count disks OK".$perfdatastr."\n";
     exit 0;
 }
 
@@ -103,8 +152,7 @@ check_cdot_disk - Checks Disk Healthness
 
 =head1 SYNOPSIS
 
-check_cdot_disk.pl --hostname HOSTNAME \
-    --username USERNAME --password PASSWORD
+check_cdot_disk.pl -H HOSTNAME -u USERNAME -p PASSWORD [-d COUNT]
 
 =head1 DESCRIPTION
 
@@ -114,21 +162,25 @@ Checks if there are some damaged disks.
 
 =over 4
 
-=item --hostname FQDN
+=item -H | --hostname FQDN
 
 The Hostname of the NetApp to monitor
 
-=item --username USERNAME
+=item -u | --username USERNAME
 
 The Login Username of the NetApp to monitor
 
-=item --password PASSWORD
+=item -p | --password PASSWORD
 
 The Login Password of the NetApp to monitor
 
+=item -d | --disks COUNT
+
+Expected number of disks to find
+
 =item -help
 
-=item -?
+=item -h
 
 to see this Documentation
 

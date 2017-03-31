@@ -157,7 +157,7 @@ while(defined($snapmirror_next)){
             my $schedule = $snap->child_get_string("schedule");
 	
 						if(($dest_vol) && ($schedule)){
-	            unless(($schedule =~ m/^hourly/) || ($schedule =~ m/^15min$/) || ($dest_vol =~ m/^CC_snapprotect_SP/)){
+	            unless(($schedule =~ m/^hourly/) || ($schedule =~ m/daily/) || ($schedule =~ m/^15min$/) || ($dest_vol =~ m/^CC_snapprotect_SP/)){
                 push(@no_schedule, $dest_vol);
 							}
             }
