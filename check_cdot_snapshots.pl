@@ -26,6 +26,7 @@ GetOptions(
     'numbersnapshot=i'  => \my $snapshotnumber,
     'retentiondays=i'   => \my $retention_days,
     'volume=s'          => \my $volumename,
+    'busy'              => \my $busy_check,
     'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -61,15 +62,19 @@ $xi->child_add($xi1);
 $xi1->child_add_string('name','name');
 $xi1->child_add_string('volume','volume');
 $xi1->child_add_string('access-time','access-time');
+$xi1->child_add_string('busy','busy');
+$xi1->child_add_string('dependency','dependency');
 
 my $next = "";
+
+my %busy_snapshots;
 
 while(defined($next)){
         unless($next eq ""){
             $tag_elem->set_content($next);    
         }
 
-        $snap_iterator->child_add_string("max-records", 1000);
+        $snap_iterator->child_add_string("max-records", '10000');
         my $snap_output = $s->invoke_elem($snap_iterator);
 
         if ($snap_output->results_errno != 0) {
@@ -90,6 +95,7 @@ while(defined($next)){
 
             my $vol_name = $snap->child_get_string("volume");
             my $snap_time = $snap->child_get_string("access-time");
+            my $busy_status = $snap->child_get_string("busy");
             my $age = $now - $snap_time;
 
             if($age >= $AgeOpt){
@@ -99,17 +105,40 @@ while(defined($next)){
                 }
             }
         }
+
+        if($busy_check){
+            foreach my $snap (@snapshots){
+                if ($snap->child_get_string("busy") eq "true"){
+                    $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency");
+                }
+            }
+        }
         $next = $snap_output->child_get_string("next-tag");
 }
 
 if (@old_snapshots) {
-    print @old_snapshots . " snapshot(s) older than $AgeOpt seconds:\n";
+    print @old_snapshots . " snapshot(s) older than $AgeOpt seconds ";
+    if (%busy_snapshots){
+        print "and %busy_snapshots are in busy state"
+    }
+    print ":\n";
     print "@old_snapshots\n";
+    foreach my $snap (keys %busy_snapshots){
+        print "$snap ($busy_snapshots{$snap})\n";
+    }
     exit 1;
 }
 else {
-    print "No snapshots are older than $AgeOpt seconds\n";
-    exit 0;
+    if (!%busy_snapshots){
+        print "OK - No snapshots are older than $AgeOpt seconds\n";
+        exit 0;
+    } else {
+        print "WARNING - There are some snapshots in busy state:\n";
+            foreach my $snap (keys %busy_snapshots){
+                print "$snap ($busy_snapshots{$snap})\n";
+            }
+        exit(1);
+    }
 }
 
 sub snapmirror_volumes {
@@ -127,7 +156,7 @@ sub snapmirror_volumes {
             $snapmirror_tag_elem->set_content($snapmirror_next_tag);
         }
 
-        $snapmirror_iterator->child_add_string("max-records", 1000);
+        $snapmirror_iterator->child_add_string("max-records", '10000');
         my $snapmirror_output = $s->invoke_elem($snapmirror_iterator);
 
         if ($snapmirror_output->results_errno != 0) {
@@ -164,6 +193,7 @@ sub single_volume_check {
     my $found = 0;
     my @snapshot_list;
     my $now = time;
+    my %busy_snapshots;
     
     # Create the XML code to be submitted to the CDOT Cluster
 
@@ -173,6 +203,11 @@ sub single_volume_check {
     my $xi1 = new NaElement('snapshot-info');
     $xi->child_add($xi1);
     $xi1->child_add_string('access-time');
+    $xi1->child_add_string('name','name');
+    $xi1->child_add_string('volume','volume');
+    $xi1->child_add_string('access-time','access-time');
+    $xi1->child_add_string('busy','busy');
+    $xi1->child_add_string('dependency','dependency');
     my $xi2 = new NaElement('query');
     $api->child_add($xi2);
     my $xi3 = new NaElement('snapshot-info');
@@ -195,10 +230,6 @@ sub single_volume_check {
         my $attr_list = $xo->child_get("attributes-list");
         @snapshot_list = $attr_list->children_get();
 
-        if ($current_snap_num != $snapshotnumber){
-            print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")\n";
-            exit(1);
-        }
         foreach my $snap(@snapshot_list){
             my $snap_create_time = $snap->child_get_int("access-time");
             if($now - $snap_create_time <= $snaptime_second){
@@ -212,19 +243,68 @@ sub single_volume_check {
                 $timestamp_best_snap = $snap_create_time;
             }
         }
+        foreach my $snap (@snapshot_list){
+            if ($snap->child_get_string("busy") eq "true"){
+                $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency");
+            }
+        }
+        if ($current_snap_num != $snapshotnumber){
+            print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")";
+            if (%busy_snapshots){
+                print "[...]\nThere are also some snapshots in busy state:\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+            } else {
+                print "\n";
+            }
+            exit(1);
+        }
         if ($found == 1){
-            print "OK - Snapshots OK\n";
-            exit(0);
+            if (!%busy_snapshots){
+                print "OK - Snapshots OK\n";
+                exit(0);
+            } else {
+                print "WARNING - There are some snapshots in busy state:\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+                exit(1);
+            }
         } else {
-            print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)\n";
+            print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)";
+            if (%busy_snapshots){
+                print "[...]\nThere are also some snapshots in busy state:\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+            } else {
+                print "\n";
+            }
             exit(2);
         }
     } else {
         if ($current_snap_num != 0 && $snapshotnumber == 0){
-            print "CRITICAL - There are snapshots for a volume that shouldn't have any\n";
+            print "CRITICAL - There are snapshots for a volume that shouldn't have any";
+            if (%busy_snapshots){
+                print "[...]\nThere are also some snapshots in busy state:\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+            } else {
+                print "\n";
+            }
             exit(2);
         }elsif ($current_snap_num == 0 && $snapshotnumber != 0){
-            print "WARNING - The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")\n";
+            print "WARNING - The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")";
+            if (%busy_snapshots){
+                print "[...]\nThere are also some snapshots in busy state:\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+            } else {
+                print "\n";
+            }
             exit(1);
         }else{
             print "OK - No snapshot for the requested volume\n";
@@ -243,7 +323,9 @@ check_cdot_snapshots - Check if there are old Snapshots
 =head1 SYNOPSIS
 
 check_cdot_snapshots.pl --hostname HOSTNAME \
-    --username USERNAME --password PASSWORD [--age AGE-SECONDS]
+    --username USERNAME --password PASSWORD [--age AGE-SECONDS] \
+    [--numbersnapshot NUMBER-ITEMS] [--retentiondays AGE-DAYS] \
+    [--volume VOLUME-NAME] [--busy]
 
 =head1 DESCRIPTION
 
@@ -269,7 +351,7 @@ The Login Password of the NetApp to monitor
 
 Snapshot age in Seconds. Default 90 days
 
-=item --volume VOLUME
+=item --volume VOLUME-NAME
 
 Name of the single snapshot that has to be checked (useful for check that a snapshot retention works)
 
@@ -280,6 +362,10 @@ The number of snapshots that should be present in VOLUME volume (useful for chec
 =item --retentiondays AGE-DAYS
 
 Snapshot age in days of the newest snapshot in VOLUME volume (useful for check that a snapshot retention works)
+
+=item --busy 
+
+Check whether there are snapshot in busy state
 
 =item -help
 
