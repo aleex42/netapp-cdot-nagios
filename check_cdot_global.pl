@@ -2,7 +2,7 @@
 
 # nagios: -epn
 # --
-# check_cdot_global - Check powersupplys, fans, nvram status, temp or global health
+# check_cdot_global - Check powersupplies, fans, nvram status, temp or global health
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
 # This software comes with ABSOLUTELY NO WARRANTY. For details, see
@@ -167,10 +167,10 @@ while(defined($next)){
 given ($Plugin) {
     when("power"){
         if ($sum_failed_power) {
-            print "CRITICAL: $sum_failed_power failed power supply(s): $failed_node\n";
+            print "CRITICAL: $sum_failed_power failed power supplie(s): $failed_node\n";
             exit 2;
         } else {
-            print "OK: No failed power supplys\n";
+            print "OK: No failed power supplies\n";
             exit 0;
         }
     }
@@ -218,7 +218,7 @@ __END__
 
 =head1 NAME
 
-check_cdot_global.pl - Checks health status ( powersupplys, fans, ... )
+check_cdot_global.pl - Checks health status ( powersupplies, fans, ... )
 
 =head1 SYNOPSIS
 
@@ -228,7 +228,7 @@ check_cdot_global -H HOSTNAME -u USERNAME \
 =head1 DESCRIPTION
 
 Checks Health Status of:
-  * Power Supplys
+  * Power Supplies
   * Fans
   * NvRam status
   * Temperatuter
