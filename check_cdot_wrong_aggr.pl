@@ -84,23 +84,28 @@ while(defined($next)){
     }
 
     my $vols = $output->child_get("attributes-list");
-    my @result = $vols->children_get();
 
-    foreach my $vol (@result){
+    if($vols){
 
-        my $id = $vol->child_get("volume-id-attributes");
+        my @result = $vols->children_get();
 
-        my $name = $id->child_get_string("name");
-        my $aggr = $id->child_get_string("containing-aggregate-name");
-        my $type = $id->child_get_string("type");
+        foreach my $vol (@result){
 
-        if(($type eq "dp") && ($aggr =~ m/ata/)){
-            $wrong_dp++;
-        } 
+            my $id = $vol->child_get("volume-id-attributes");
 
-        if(($type eq "rw") && ($aggr =~ m/snapmirror/)){
-            $wrong_rw++;
+            my $name = $id->child_get_string("name");
+            my $aggr = $id->child_get_string("containing-aggregate-name");
+            my $type = $id->child_get_string("type");
+
+            if(($type eq "dp") && ($aggr =~ m/ata/)){
+                $wrong_dp++;
+            } 
+
+            if(($type eq "rw") && ($aggr =~ m/snapmirror/)){
+                $wrong_rw++;
+            }
         }
+
     }
 
     $next = $output->child_get_string("next-tag");
