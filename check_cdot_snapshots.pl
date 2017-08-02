@@ -124,10 +124,11 @@ while(defined($next)){
         $next = $snap_output->child_get_string("next-tag");
 }
 
+my $busy_snapshots_count = scalar keys %busy_snapshots;
 if (@old_snapshots) {
     print @old_snapshots . " snapshot(s) older than $AgeOpt seconds ";
     if (%busy_snapshots){
-        print "and %busy_snapshots are in busy state"
+        print "and $busy_snapshots_count are in busy state"
     }
     print ":\n";
     print "@old_snapshots\n";
@@ -141,7 +142,7 @@ else {
         print "OK - No snapshots are older than $AgeOpt seconds\n";
         exit 0;
     } else {
-        print "WARNING - There are some snapshots in busy state:\n";
+        print "WARNING - There are $busy_snapshots_count snapshots in busy state:\n";
             foreach my $snap (keys %busy_snapshots){
                 print "$snap ($busy_snapshots{$snap})\n";
             }
