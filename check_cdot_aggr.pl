@@ -45,9 +45,11 @@ Error('Option --warning needed!')  unless $Warning;
 Error('Option --critical needed!') unless $Critical;
 
 my $perfmsg;
-my $message;
 my $critical = 0;
 my $warning = 0;
+my $crit_msg;
+my $warn_msg;
+my $ok_msg;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
@@ -100,7 +102,6 @@ while(defined($next)){
 
     foreach my $aggr (@result){
 
-
         my $aggr_name = $aggr->child_get_string("aggregate-name");
 
     	# exclude root aggregates
@@ -109,20 +110,38 @@ while(defined($next)){
             next if exists $Excludelist{$aggr_name};
 
             my $space = $aggr->child_get("aggr-space-attributes");
-	    my $bytesused = $space->child_get_int("size-used");
-	    my $bytesavail = $space->child_get_int("size-available");
-	    my $bytestotal = $space->child_get_int("size-total");
+	        my $bytesused = $space->child_get_int("size-used");
+	        my $bytesavail = $space->child_get_int("size-available");
+	        my $bytestotal = $space->child_get_int("size-total");
             my $percent = $space->child_get_int("percent-used-capacity");
 
-            $critical++ if $percent >= $Critical;
-            $warning++  if $percent >= $Warning;
+            if($percent >= $Critical){
 
-            if ($message) {
-                $message .= ", " . $aggr_name . " (" . $percent . "%)";
+                $critical++;
+                
+                if($crit_msg){
+                    $crit_msg .= ", " . $aggr_name . " (" . $percent . "%)";
+                } else {
+                    $crit_msg .= $aggr_name . " (" . $percent . "%)";
+                }
+
+            } elsif ($percent >= $Warning){
+
+                $warning++;
+
+                if ($warn_msg) {
+                    $warn_msg .= ", " . $aggr_name . " (" . $percent . "%)";
+                } else {
+                    $warn_msg .= $aggr_name . " (" . $percent . "%)";
+                }
+            } else {
+
+                if ($ok_msg){
+                    $ok_msg .= ", " . $aggr_name . " (" . $percent . "%)";
+                } else {
+                    $ok_msg .= $aggr_name . " (" . $percent . "%)";
+                }   
             }
-            else {
-                $message .= $aggr_name . " (" . $percent . "%)";
-            }   
 
             if ($perf) {
 
@@ -138,17 +157,22 @@ while(defined($next)){
 }
 
 if($critical > 0){
-    print "CRITICAL: " . $message;
+    print "CRITICAL: $crit_msg\n";
+    if($warning >0){
+        print "WARNING: $warn_msg\n";
+    }
+    print "OK: $ok_msg";
     if($perf) {print"|" . $perfmsg;}
     print  "\n";
     exit 2;
 } elsif($warning > 0){
-    print "WARNING: " . $message;
+    print "WARNING: $warn_msg\n";
+    print "OK: $ok_msg";
     if($perf){print"|" . $perfmsg;}
     print  "\n";    
     exit 1;
 } else {
-    print "OK: " . $message;
+    print "OK: $ok_msg";
     if($perf){print"|" . $perfmsg;}    
     print  "\n";    
     exit 0;
