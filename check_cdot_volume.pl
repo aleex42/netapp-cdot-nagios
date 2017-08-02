@@ -202,7 +202,11 @@ foreach my $vol ( keys(%perfdata) ) {
 
 if(scalar(@crit_msg) ){
     print "CRITICAL: ";
-    print join (" ", @crit_msg, "\n\nWARNING:", @warn_msg, "\n\nOK:" , @ok_msg);
+    if(scalar(@warn_msg)){
+        print join (" ", @crit_msg, "\n\nWARNING:", @warn_msg, "\n\nOK:" , @ok_msg);
+    } else {
+        print join (" ", @crit_msg, "\n\nOK:" , @ok_msg);
+    }
     print "|$perfdatastr\n";
     exit 2;
 } elsif(scalar(@warn_msg) ){
