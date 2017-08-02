@@ -157,16 +157,16 @@ while(defined($next)){
 }
 
 if($critical > 0){
-    print "CRITICAL: $crit_msg\n";
+    print "CRITICAL: $crit_msg\n\n";
     if($warning >0){
-        print "WARNING: $warn_msg\n";
+        print "WARNING: $warn_msg\n\n";
     }
     print "OK: $ok_msg";
     if($perf) {print"|" . $perfmsg;}
     print  "\n";
     exit 2;
 } elsif($warning > 0){
-    print "WARNING: $warn_msg\n";
+    print "WARNING: $warn_msg\n\n";
     print "OK: $ok_msg";
     if($perf){print"|" . $perfmsg;}
     print  "\n";    
