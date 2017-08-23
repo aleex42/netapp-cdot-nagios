@@ -28,6 +28,7 @@ GetOptions(
     'volume=s'          => \my $volumename,
     'busy'              => \my $busy_check,
     'exclude=s'         => \my $excludeliststring,
+    'snap_error=s'      => \my $snaperrorstring,
     'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -41,9 +42,14 @@ Error('Option --password needed!') unless $Password;
 $AgeOpt = 3600 * 24 * 90 unless $AgeOpt; # 90 days
 
 my %Excludelist;
+my %Snaperrorlist;
 if ($excludeliststring){
     my @excludelistarray = split(',', $excludeliststring);
     @Excludelist{@excludelistarray}=();
+}
+if ($snaperrorstring){
+    my @snaperrorarray = split(',', $snaperrorstring);
+    @Snaperrorlist{@snaperrorarray}=();
 }
 my @old_snapshots;
 my $now = time;
@@ -102,27 +108,23 @@ while(defined($next)){
             print "OK - No snapshots\n";
             exit 0;
         }
-
+        
         foreach my $snap (@snapshots){
+            if(! exists $Excludelist{$snap->child_get_string("volume")}){
+                my $vol_name = $snap->child_get_string("volume");
+                my $snap_time = $snap->child_get_string("access-time");
+                my $busy_status = $snap->child_get_string("busy");
+                my $age = $now - $snap_time;
 
-            $vol_name = $snap->child_get_string("volume");
-            my $snap_time = $snap->child_get_string("access-time");
-            my $busy_status = $snap->child_get_string("busy");
-            my $age = $now - $snap_time;
-
-            if($age >= $AgeOpt){
-                unless(grep(/$vol_name/, @snapmirrors)){
-                    my $snap_name  = $snap->child_get_string("name");
-                    unless($snap_name =~ m/^clone/){
-                        push @old_snapshots, "$vol_name/$snap_name";
+                if($age >= $AgeOpt){
+                    unless(grep(/$vol_name/, @snapmirrors)){
+                        my $snap_name  = $snap->child_get_string("name");
+                        unless($snap_name =~ m/^clone/ || ($snap->child_get_string("dependency")) =~ /vclone/){
+                            push @old_snapshots, "$vol_name/$snap_name";
+                        }
                     }
                 }
-            }
-        }
-
-        if($busy_check){
-            foreach my $snap (@snapshots){
-                if(! exists $Excludelist{$snap->child_get_string("volume")}){
+                if ($busy_check){
                     if ($snap->child_get_string("busy") eq "true" && ($snap->child_get_string("dependency")) !~ /snap/){
                         $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency")." - VOL: ".$snap->child_get_string("volume");
                     }
@@ -139,7 +141,10 @@ if (@old_snapshots) {
         print "and $busy_snapshots_count are in busy state"
     }
     print ":\n";
-    print "@old_snapshots\n";
+    foreach my $snap (@old_snapshots){
+        print "$snap\n";
+    }
+    #print "@old_snapshots\n";
     foreach my $snap (keys %busy_snapshots){
         print "$snap ($busy_snapshots{$snap})\n";
     }
