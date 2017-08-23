@@ -2,7 +2,7 @@
 
 # nagios: -epn
 # --
-# check_cdot_snapshots - Check if old Snapshots exists
+# check_cdot_snapshots - Various check onto volume Snapshots (eg. Old snapshots, existence of specific snapshots, etc... )
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
 # This software comes with ABSOLUTELY NO WARRANTY. For details, see
@@ -43,6 +43,9 @@ $AgeOpt = 3600 * 24 * 90 unless $AgeOpt; # 90 days
 
 my %Excludelist;
 my %Snaperrorlist;
+my @old_snapshots;
+my $now = time;
+
 if ($excludeliststring){
     my @excludelistarray = split(',', $excludeliststring);
     @Excludelist{@excludelistarray}=();
@@ -51,8 +54,7 @@ if ($snaperrorstring){
     my @snaperrorarray = split(',', $snaperrorstring);
     @Snaperrorlist{@snaperrorarray}=();
 }
-my @old_snapshots;
-my $now = time;
+
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type("HTTPS");
@@ -80,6 +82,7 @@ $xi1->child_add_string('dependency','dependency');
 my $next = "";
 
 my %busy_snapshots;
+my %wrong_snapshots;
 
 while(defined($next)){
         unless($next eq ""){
@@ -110,7 +113,10 @@ while(defined($next)){
         }
         
         foreach my $snap (@snapshots){
-            if(! exists $Excludelist{$snap->child_get_string("volume")}){
+            if (exists $Snaperrorlist{$snap->child_get_string("name")}){
+                $wrong_snapshots{$snap->child_get_string("name")} = "VOL: ".$snap->child_get_string("volume");
+            }
+            if (! exists $Excludelist{$snap->child_get_string("volume")}){
                 my $vol_name = $snap->child_get_string("volume");
                 my $snap_time = $snap->child_get_string("access-time");
                 my $busy_status = $snap->child_get_string("busy");
@@ -136,7 +142,7 @@ while(defined($next)){
 
 my $busy_snapshots_count = scalar keys %busy_snapshots;
 if (@old_snapshots) {
-    print @old_snapshots . " snapshot(s) older than $AgeOpt seconds ";
+    print "WARNING: ".@old_snapshots . " snapshot(s) older than $AgeOpt seconds ";
     if (%busy_snapshots){
         print "and $busy_snapshots_count are in busy state"
     }
@@ -144,7 +150,6 @@ if (@old_snapshots) {
     foreach my $snap (@old_snapshots){
         print "$snap\n";
     }
-    #print "@old_snapshots\n";
     foreach my $snap (keys %busy_snapshots){
         print "$snap ($busy_snapshots{$snap})\n";
     }
@@ -152,10 +157,10 @@ if (@old_snapshots) {
 }
 else {
     if (!%busy_snapshots){
-        print "OK - No snapshots are older than $AgeOpt seconds\n";
+        print "OK: No snapshots are older than $AgeOpt seconds\n";
         exit 0;
     } else {
-        print "WARNING - There are $busy_snapshots_count snapshots in busy state:\n";
+        print "WARNING: There are $busy_snapshots_count snapshots in busy state:\n";
             foreach my $snap (keys %busy_snapshots){
                 print "$snap ($busy_snapshots{$snap})\n";
             }
@@ -274,7 +279,7 @@ sub single_volume_check {
         }
         my $busy_snapshots_count = scalar keys %busy_snapshots;
         if ($current_snap_num != $snapshotnumber){
-            print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")";
+            print "WARNING: The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")";
             if (%busy_snapshots){
                 print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
@@ -290,14 +295,14 @@ sub single_volume_check {
                 print "OK - Snapshots OK\n";
                 exit(0);
             } else {
-                print "WARNING - There are $busy_snapshots_count snapshots in busy state:\n";
+                print "WARNING: There are $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
                 }
                 exit(1);
             }
         } else {
-            print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)";
+            print "CRITICAL: The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)";
             if (%busy_snapshots){
                 print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
@@ -310,7 +315,7 @@ sub single_volume_check {
         }
     } else {
         if ($current_snap_num != 0 && $snapshotnumber == 0){
-            print "CRITICAL - There are snapshots for a volume that shouldn't have any";
+            print "CRITICAL: There are snapshots for a volume that shouldn't have any";
             if (%busy_snapshots){
                 print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
@@ -321,7 +326,7 @@ sub single_volume_check {
             }
             exit(2);
         }elsif ($current_snap_num == 0 && $snapshotnumber != 0){
-            print "WARNING - The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")";
+            print "WARNING: The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")";
             if (%busy_snapshots){
                 print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
@@ -332,7 +337,7 @@ sub single_volume_check {
             }
             exit(1);
         }else{
-            print "OK - No snapshot for the requested volume\n";
+            print "OK: No snapshot for the requested volume\n";
             exit(0);
         }
     } 
@@ -343,18 +348,19 @@ __END__
 
 =head1 NAME
 
-check_cdot_snapshots - Check if there are old Snapshots
+check_cdot_snapshots - Various check onto volume Snapshots (eg. Old snapshots, existence of specific snapshots, etc... )
 
 =head1 SYNOPSIS
 
 check_cdot_snapshots.pl --hostname HOSTNAME \
     --username USERNAME --password PASSWORD [--age AGE-SECONDS] \
     [--numbersnapshot NUMBER-ITEMS] [--retentiondays AGE-DAYS] \
-    [--volume VOLUME-NAME] [--busy]
+    [--volume VOLUME-NAME] [--busy] [--exclude VOLUME-NAME[,VOLUME-NAME]] \
+    [--snap_error SNAPSHOT-NAME[,SNAPSHOT-NAME]]
 
 =head1 DESCRIPTION
 
-Checks if old ( > 90 days ) Snapshots exist
+Various check onto volume Snapshots. You can check, eg., the oldness of the snapshots of the entire CDOT or of a single volume, whether exists a specific snapshot inside 
 
 =head1 OPTIONS
 
