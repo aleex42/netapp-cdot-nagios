@@ -27,6 +27,7 @@ GetOptions(
     'retentiondays=i'   => \my $retention_days,
     'volume=s'          => \my $volumename,
     'busy'              => \my $busy_check,
+    'exclude=s'         => \my $excludeliststring,
     'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -39,6 +40,11 @@ Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 $AgeOpt = 3600 * 24 * 90 unless $AgeOpt; # 90 days
 
+my %Excludelist;
+if ($excludeliststring){
+    my @excludelistarray = split(',', $excludeliststring);
+    @Excludelist{@excludelistarray}=();
+}
 my @old_snapshots;
 my $now = time;
 
@@ -99,7 +105,7 @@ while(defined($next)){
 
         foreach my $snap (@snapshots){
 
-            my $vol_name = $snap->child_get_string("volume");
+            $vol_name = $snap->child_get_string("volume");
             my $snap_time = $snap->child_get_string("access-time");
             my $busy_status = $snap->child_get_string("busy");
             my $age = $now - $snap_time;
@@ -116,8 +122,10 @@ while(defined($next)){
 
         if($busy_check){
             foreach my $snap (@snapshots){
-                if ($snap->child_get_string("busy") eq "true"){
-                    $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency");
+                if(! exists $Excludelist{$snap->child_get_string("volume")}){
+                    if ($snap->child_get_string("busy") eq "true" && ($snap->child_get_string("dependency")) !~ /snap/){
+                        $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency")." - VOL: ".$snap->child_get_string("volume");
+                    }
                 }
             }
         }
@@ -252,15 +260,18 @@ sub single_volume_check {
                 $timestamp_best_snap = $snap_create_time;
             }
         }
-        foreach my $snap (@snapshot_list){
-            if ($snap->child_get_string("busy") eq "true"){
-                $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency");
+        if (!$busy_check){
+            foreach my $snap (@snapshot_list){
+                    if ($snap->child_get_string("busy") eq "true"){
+                        $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency");
+                    }
             }
         }
+        my $busy_snapshots_count = scalar keys %busy_snapshots;
         if ($current_snap_num != $snapshotnumber){
             print "WARNING - The snapshot number is different from the requested (".$current_snap_num."!=".$snapshotnumber.")";
             if (%busy_snapshots){
-                print "[...]\nThere are also some snapshots in busy state:\n";
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
                 }
@@ -274,7 +285,7 @@ sub single_volume_check {
                 print "OK - Snapshots OK\n";
                 exit(0);
             } else {
-                print "WARNING - There are some snapshots in busy state:\n";
+                print "WARNING - There are $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
                 }
@@ -283,7 +294,7 @@ sub single_volume_check {
         } else {
             print "CRITICAL - The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)";
             if (%busy_snapshots){
-                print "[...]\nThere are also some snapshots in busy state:\n";
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
                 }
@@ -296,7 +307,7 @@ sub single_volume_check {
         if ($current_snap_num != 0 && $snapshotnumber == 0){
             print "CRITICAL - There are snapshots for a volume that shouldn't have any";
             if (%busy_snapshots){
-                print "[...]\nThere are also some snapshots in busy state:\n";
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
                 }
@@ -307,7 +318,7 @@ sub single_volume_check {
         }elsif ($current_snap_num == 0 && $snapshotnumber != 0){
             print "WARNING - The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")";
             if (%busy_snapshots){
-                print "[...]\nThere are also some snapshots in busy state:\n";
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
                 }
