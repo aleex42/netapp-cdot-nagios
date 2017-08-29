@@ -295,23 +295,22 @@ sub single_volume_check {
             if (exists $Snaperrorlist{$snap->child_get_string("name")}){
                 $wrong_snapshots{$snap->child_get_string("name")} = "VOL: ".$snap->child_get_string("volume");
             }
-            my $snap_create_time = $snap->child_get_int("access-time");
-            if($now - $snap_create_time <= $snaptime_second){
-                if($found == 0){
-                    $found = 1;
-                    last;
-                } 
-            } elsif ($timestamp_best_snap - $snap_create_time < 0){
-                $timestamp_best_snap = $snap_create_time;
-            } elsif ($timestamp_best_snap == -1){
-                $timestamp_best_snap = $snap_create_time;
-            }
             if (!$busy_check){
                 if ($snap->child_get_string("busy") eq "true"){
                     $busy_snapshots{$snap->child_get_string("name")} = $snap->child_get_string("dependency");
                 }
             }
-        }
+            if ($found == 0){
+                my $snap_create_time = $snap->child_get_int("access-time");
+                if($now - $snap_create_time <= $snaptime_second){
+                    $found = 1;
+                } elsif ($timestamp_best_snap - $snap_create_time < 0){
+                    $timestamp_best_snap = $snap_create_time;
+                } elsif ($timestamp_best_snap == -1){
+                    $timestamp_best_snap = $snap_create_time;
+                }
+            }
+        } 
         
         my $busy_snapshots_count = scalar keys %busy_snapshots;
         my $wrong_snapshots_count = scalar keys %wrong_snapshots;
@@ -323,9 +322,19 @@ sub single_volume_check {
                     print "$snap ($busy_snapshots{$snap})\n";
                 }
             } elsif (%wrong_snapshots && !%busy_snapshots){
-                print "[...]\nThere are also $wrong_snapshots_count snapshots in busy state:\n";
+                print "[...]\nThere are also $wrong_snapshots_count snapshots that should not be found:\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
+                }
+            } elsif (%wrong_snapshots && %busy_snapshots){
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state and $wrong_snapshots_count snapshot that should not be found\n";
+                print "---- Busy Snapshots ----\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
+                }
+                print "---- Wrong Snapshots ----\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
                 }
             } else {
                 print "\n";
@@ -333,22 +342,56 @@ sub single_volume_check {
             exit(1);
         }
         if ($found == 1){
-            if (!%busy_snapshots){
-                print "OK - Snapshots OK\n";
-                exit(0);
-            } else {
+            if (%busy_snapshots && !%wrong_snapshots){
                 print "WARNING: There are $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
+                    
                 }
                 exit(1);
+            } elsif (%wrong_snapshots && !%busy_snapshots){
+                print "WARNING: There are $wrong_snapshots_count snapshots that should not be found:\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
+                    
+                }
+                exit(1);
+            } elsif (%wrong_snapshots && %busy_snapshots){
+                print "WARNING: There are  $busy_snapshots_count snapshots in busy state and $wrong_snapshots_count snapshot that should not be found\n";
+                print "---- Busy Snapshots ----\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+                print "---- Wrong Snapshots ----\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
+                }
+                exit(1);
+            } else {
+                print "OK - Snapshots OK\n";
+                exit(0);
             }
         } else {
             print "CRITICAL: The newest snapshot is older than the time requested (".sprintf("%.2f", (($now - $timestamp_best_snap)/86400))."!=".$retention_days." gg)";
-            if (%busy_snapshots){
+            if (%busy_snapshots && !%wrong_snapshots){
                 print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
+                }
+            } elsif (%wrong_snapshots && !%busy_snapshots){
+                print "[...]\nThere are also $wrong_snapshots_count snapshots that should not be found:\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
+                }
+            } elsif (%wrong_snapshots && %busy_snapshots){
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state and $wrong_snapshots_count snapshot that should not be found\n";
+                print "---- Busy Snapshots ----\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+                print "---- Wrong Snapshots ----\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
                 }
             } else {
                 print "\n";
@@ -358,10 +401,25 @@ sub single_volume_check {
     } else {
         if ($current_snap_num != 0 && $snapshotnumber == 0){
             print "CRITICAL: There are snapshots for a volume that shouldn't have any";
-            if (%busy_snapshots){
+            if (%busy_snapshots && !%wrong_snapshots){
                 print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
+                }
+            } elsif (%wrong_snapshots && !%busy_snapshots){
+                print "[...]\nThere are also $wrong_snapshots_count snapshots that should not be found:\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
+                }
+            } elsif (%wrong_snapshots && %busy_snapshots){
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state and $wrong_snapshots_count snapshot that should not be found\n";
+                print "---- Busy Snapshots ----\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+                print "---- Wrong Snapshots ----\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
                 }
             } else {
                 print "\n";
@@ -369,10 +427,25 @@ sub single_volume_check {
             exit(2);
         }elsif ($current_snap_num == 0 && $snapshotnumber != 0){
             print "WARNING: The number of snapshots is different from the expected (".$current_snap_num."!=".$snapshotnumber.")";
-            if (%busy_snapshots){
+            if (%busy_snapshots && !%wrong_snapshots){
                 print "[...]\nThere are also $busy_snapshots_count snapshots in busy state:\n";
                 foreach my $snap (keys %busy_snapshots){
                     print "$snap ($busy_snapshots{$snap})\n";
+                }
+            } elsif (%wrong_snapshots && !%busy_snapshots){
+                print "[...]\nThere are also $wrong_snapshots_count snapshots that should not be found:\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
+                }
+            } elsif (%wrong_snapshots && %busy_snapshots){
+                print "[...]\nThere are also $busy_snapshots_count snapshots in busy state and $wrong_snapshots_count snapshot that should not be found\n";
+                print "---- Busy Snapshots ----\n";
+                foreach my $snap (keys %busy_snapshots){
+                    print "$snap ($busy_snapshots{$snap})\n";
+                }
+                print "---- Wrong Snapshots ----\n";
+                foreach my $snap (keys %wrong_snapshots){
+                    print "$snap ($wrong_snapshots{$snap})\n";
                 }
             } else {
                 print "\n";
