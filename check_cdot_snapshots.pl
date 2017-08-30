@@ -27,13 +27,30 @@ GetOptions(
     'retentiondays=i'   => \my $retention_days,
     'volume=s'          => \my $volumename,
     'busy'              => \my $busy_check,
+    'exclude=s'         => \my @excludelistarray,
+    'regexp'            => \my $regexp,
+    'v|verbose'         => \my $verbose,
     'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
+
+my %Excludelist;
+@Excludelist{@excludelistarray}=();
+my $excludeliststr = join "|", @excludelistarray;
 
 sub Error {
     print "$0: " . $_[0] . "\n";
     exit 2;
 }
+
+sub sec2human {
+    my $secs = shift;
+    if    ($secs >= 365*24*60*60) { return sprintf '%.1f year(s)', $secs/(365*24*60*60) }
+    elsif ($secs >=     24*60*60) { return sprintf '%.1f day(s)', $secs/(24*60*60) }
+    elsif ($secs >=        60*60) { return sprintf '%.1f hour(s)', $secs/(60*60) }
+    elsif ($secs >=           60) { return sprintf '%.1f minute(s)', $secs/(60) }
+    else                          { return sprintf '%.1f second(s)', $secs}
+}
+
 Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
@@ -68,10 +85,12 @@ $xi1->child_add_string('dependency','dependency');
 my $next = "";
 
 my %busy_snapshots;
+my @auto_excluded_volumes;
+my @manually_excluded_snapshots;
 
 while(defined($next)){
         unless($next eq ""){
-            $tag_elem->set_content($next);    
+            $tag_elem->set_content($next);
         }
 
         $snap_iterator->child_add_string("max-records", '10000');
@@ -100,13 +119,29 @@ while(defined($next)){
         foreach my $snap (@snapshots){
 
             my $vol_name = $snap->child_get_string("volume");
+            my $snap_name  = $snap->child_get_string("name");
             my $snap_time = $snap->child_get_string("access-time");
             my $busy_status = $snap->child_get_string("busy");
             my $age = $now - $snap_time;
 
+            if ($verbose) {
+                print "[DEBUG] volume: $vol_name,\t snapshot: $snap_name,\t busy_status: $busy_status,\t age: $age\n";
+            }
+
+            if (exists $Excludelist{$vol_name}) {
+                push(@manually_excluded_snapshots,"$vol_name/$snap_name\n");
+                next;
+            }
+
+            if ($regexp and $excludeliststr) {
+                if ($vol_name =~ m/$excludeliststr/) {
+                    push(@manually_excluded_snapshots,"$vol_name/$snap_name\n");
+                    next;
+                }
+            }
+
             if($age >= $AgeOpt){
                 unless(grep(/$vol_name/, @snapmirrors)){
-                    my $snap_name  = $snap->child_get_string("name");
                     unless($snap_name =~ m/^clone/){
                         push @old_snapshots, "$vol_name/$snap_name";
                     }
@@ -126,26 +161,37 @@ while(defined($next)){
 
 my $busy_snapshots_count = scalar keys %busy_snapshots;
 if (@old_snapshots) {
-    print @old_snapshots . " snapshot(s) older than $AgeOpt seconds ";
+    print @old_snapshots . " snapshot(s) older than " . sec2human($AgeOpt);
     if (%busy_snapshots){
-        print "and $busy_snapshots_count are in busy state"
+        print "and $busy_snapshots_count are in busy state";
     }
-    print ":\n";
+    print "|\n";
+    print "* Snapshot(s) older than " . sec2human($AgeOpt) . "\n";
     print "@old_snapshots\n";
-    foreach my $snap (keys %busy_snapshots){
-        print "$snap ($busy_snapshots{$snap})\n";
+    if (%busy_snapshots){
+        print "* Snapshot(s) in busy state\n";
+        foreach my $snap (keys %busy_snapshots){
+            print "$snap ($busy_snapshots{$snap})\n";
+        }
     }
     exit 1;
 }
 else {
     if (!%busy_snapshots){
-        print "OK - No snapshots are older than $AgeOpt seconds\n";
+        print "OK - No snapshots are older than " . sec2human($AgeOpt);
+        print "|\n";
+        print "Manually excluded snapshot(s):\n";
+        print "@manually_excluded_snapshots\n";
         exit 0;
     } else {
-        print "WARNING - There are $busy_snapshots_count snapshots in busy state:\n";
-            foreach my $snap (keys %busy_snapshots){
-                print "$snap ($busy_snapshots{$snap})\n";
-            }
+        print "WARNING - There are $busy_snapshots_count snapshots in busy state";
+        print "|\n";
+        print "* Snapshot(s) in busy state\n";
+        foreach my $snap (keys %busy_snapshots){
+            print "$snap ($busy_snapshots{$snap})\n";
+        }
+        print "* Manually excluded snapshot(s):\n";
+        print "@manually_excluded_snapshots\n";
         exit(1);
     }
 }
@@ -191,9 +237,9 @@ sub snapmirror_volumes {
 }
 
 sub single_volume_check {
-    
+
     # Declare the variables needed
-    
+
     my $critical_state = "false";
     my $warning_state = "false";
     my $temp_best_snap = "";
@@ -203,7 +249,7 @@ sub single_volume_check {
     my @snapshot_list;
     my $now = time;
     my %busy_snapshots;
-    
+
     # Create the XML code to be submitted to the CDOT Cluster
 
     my $api = new NaElement('snapshot-get-iter');
@@ -223,7 +269,7 @@ sub single_volume_check {
     $xi2->child_add($xi3);
     $xi3->child_add_string('volume',$volumename);
     $api->child_add_string('max-records','10000');
-    
+
     my $xo = $s->invoke_elem($api);
     if ($xo->results_status() eq 'failed') {
         print 'Error:\n';
@@ -231,11 +277,11 @@ sub single_volume_check {
         exit 1;
     }
 
-    my $current_snap_num = 0; 
+    my $current_snap_num = 0;
     $current_snap_num = $xo->child_get_int("num-records");
 
     if ($snapshotnumber != 0 && $current_snap_num != 0){
-        
+
         my $attr_list = $xo->child_get("attributes-list");
         @snapshot_list = $attr_list->children_get();
 
@@ -245,7 +291,7 @@ sub single_volume_check {
                 if($found == 0){
                     $found = 1;
                     last;
-                } 
+                }
             } elsif ($timestamp_best_snap - $snap_create_time < 0){
                 $timestamp_best_snap = $snap_create_time;
             } elsif ($timestamp_best_snap == -1){
@@ -319,7 +365,7 @@ sub single_volume_check {
             print "OK - No snapshot for the requested volume\n";
             exit(0);
         }
-    } 
+    }
 }
 __END__
 
@@ -335,6 +381,7 @@ check_cdot_snapshots.pl --hostname HOSTNAME \
     --username USERNAME --password PASSWORD [--age AGE-SECONDS] \
     [--numbersnapshot NUMBER-ITEMS] [--retentiondays AGE-DAYS] \
     [--volume VOLUME-NAME] [--busy]
+    [--exclude VOLUME-NAME] [--regexp] [--verbose]
 
 =head1 DESCRIPTION
 
@@ -372,9 +419,21 @@ The number of snapshots that should be present in VOLUME volume (useful for chec
 
 Snapshot age in days of the newest snapshot in VOLUME volume (useful for check that a snapshot retention works)
 
-=item --busy 
+=item --busy
 
 Check whether there are snapshot in busy state
+
+=item --exclude
+
+Optional: The name of a volume that has to be excluded from the checks (multiple exclude item for multiple volumes)
+
+=item --regexp
+
+Optional: Enable regexp matching for the exclusion list
+
+=item -v | --verbose
+
+Enable verbose mode
 
 =item -help
 
@@ -394,3 +453,5 @@ to see this Documentation
 
  Alexander Krogloth <git at krogloth.de>
  Stelios Gikas <sgikas at demokrit.de>
+
+
