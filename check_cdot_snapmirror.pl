@@ -62,8 +62,8 @@ if(defined($VolumeName) || defined($VServer)) {
 }
 
 my $next = "";
-my $snapmirror_failed;
-my $snapmirror_ok;
+my $snapmirror_failed = 0;
+my $snapmirror_ok = 0;
 my %failed_names;
 
 while(defined($next)){
