@@ -115,16 +115,20 @@ while(defined($next)){
     }
 
     my $lifs = $lif_output->child_get("attributes-list");
-    my @lif_result = $lifs->children_get();
 
-    foreach my $lif (@lif_result){
+    if($lifs){
 
-        my $node = $lif->child_get_string("node");
-        my $name = $lif->child_get_string("port");
-        my $state = $lif->child_get_string("link-status");
-
-        if($state ne "up"){
-            push( @{$failed_ports{$node}}, $name);
+        my @lif_result = $lifs->children_get();
+    
+        foreach my $lif (@lif_result){
+   
+            my $node = $lif->child_get_string("node");
+            my $name = $lif->child_get_string("port");
+            my $state = $lif->child_get_string("link-status");
+  
+            if($state ne "up"){
+                push( @{$failed_ports{$node}}, $name);
+            }
         }
     }
 

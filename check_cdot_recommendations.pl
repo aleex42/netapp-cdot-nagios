@@ -79,47 +79,51 @@ while(defined($next)){
 	}
 	
 	my $volumes = $output->child_get("attributes-list");
-	my @result = $volumes->children_get();
-	
-	foreach my $vol (@result){
-        
-        my $snap_info = $vol->child_get("volume-snapshot-attributes");
-        my $policy = $snap_info->child_get_string("snapshot-policy");
-        my $vol_info = $vol->child_get("volume-id-attributes");
-        my $vol_name = $vol_info->child_get_string("name");
+  
+  if($volumes){
 
-        if($policy){
-            if($policy eq "default" and not $vol_name =~ /_root$|test/ ){
-                push(@snap_policy, $vol_name);
+    	my @result = $volumes->children_get();
+    	
+    	foreach my $vol (@result){
+    
+            my $snap_info = $vol->child_get("volume-snapshot-attributes");
+            my $policy = $snap_info->child_get_string("snapshot-policy");
+            my $vol_info = $vol->child_get("volume-id-attributes");
+            my $vol_name = $vol_info->child_get_string("name");
+   
+            if($policy){
+                if($policy eq "default"){
+                    push(@snap_policy, $vol_name);
+                }
             }
-        }
-	
-	    my $vol_type = $vol_info->child_get_string("type");
-	
-	    my $vol_state = $vol->child_get("volume-state-attributes");
-	    if($vol_state){
-	
-	        my $state = $vol_state->child_get_string("state");
-	
-	        if($state && ($state eq "online")){
-	
-	            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp") || ($vol_name =~ m/^temp__/) || ($vol_name =~ m/^CC_snapprotect_SP/)){
-	
-	                my $space = $vol->child_get("volume-space-attributes");
-	                my $qos = $vol->child_get("volume-qos-attributes");
-	                my $guarantee = $space->child_get_string("space-guarantee");
-	
-	                unless($qos){
-	                    push(@no_qos, $vol_name);
-	                }
-	
-	                unless($guarantee eq "none"){
-	                    push(@no_guarantee, $vol_name);
-	                }
-	            }
-	        }
-	    }
-	}
+    	
+    	    my $vol_type = $vol_info->child_get_string("type");
+    	
+    	    my $vol_state = $vol->child_get("volume-state-attributes");
+    	    if($vol_state){
+    	
+    	        my $state = $vol_state->child_get_string("state");
+    	
+    	        if($state && ($state eq "online")){
+    	
+    	            unless(($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp") || ($vol_name =~ m/^temp__/) || ($vol_name =~ m/^CC_snapprotect_SP/)){
+    	
+    	                my $space = $vol->child_get("volume-space-attributes");
+    	                my $qos = $vol->child_get("volume-qos-attributes");
+    	                my $guarantee = $space->child_get_string("space-guarantee");
+    	
+    	                unless($qos){
+    	                    push(@no_qos, $vol_name);
+    	                }
+    	
+    	                unless($guarantee eq "none"){
+    	                    push(@no_guarantee, $vol_name);
+    	                }
+    	            }
+    	        }
+    	    }
+    	}
+    }
     $next = $output->child_get_string("next-tag");
 }
 
