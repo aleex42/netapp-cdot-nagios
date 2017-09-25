@@ -22,11 +22,6 @@ GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
-    'size-warning=i'  => \my $SizeWarning,
-    'size-critical=i' => \my $SizeCritical,
-    'inode-warning=i'  => \my $InodeWarning,
-    'inode-critical=i' => \my $InodeCritical,
-    'volume=s'   => \my $Volume,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
@@ -84,8 +79,8 @@ while(defined($next)){
 	}
 	
 	my $volumes = $output->child_get("attributes-list");
-   
-    if($volumes){
+  
+  if($volumes){
 
     	my @result = $volumes->children_get();
     	
@@ -217,45 +212,67 @@ my $policy_count = @snap_policy;
 
 if(($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0) || ($policy_count != 0)){
 
-    print "WARNING: Not all recommendations are applied:\n";
+    print "WARNING: Not all recommendations are applied\n";
 
     if($qos_count != 0){
-        print "Vol without QOS:\n";
+        print "WARNING - volumes without QOS:\n";
         foreach(@no_qos){
             print "-> " . $_ . "\n";
         }
         print "\n";
+    } else {
+        print "OK - no volumes without QOS\n"
     }
 
     if($guarantee_count != 0){
-        print "Vol with wrong space-guarantee:\n";
+        print "WARNING - volumes with wrong space-guarantee:\n";
         foreach(@no_guarantee){
             print "-> " . $_ . "\n";
         }
         print "\n";
+    } else {
+        print "OK - no volumes with wrong space-guarantee\n"
     }
 
     if($schedule_count != 0){
-        print "SnapMirror without schedule:\n";
+        print "WARNING - snapMirror without schedule:\n";
         foreach(@no_schedule){
             print "-> " . $_ . "\n";
         }
+        print "\n";
+    } else {
+        print "OK - no snapmirrors without schedule\n"
     }
+
     if($failover_count != 0){
-        print "LIFs without failover-groups:\n";
+        print "WARNING - LIFs without failover-groups:\n";
         foreach(@no_failover){
             print "-> " . $_ . "\n";
         }
+        print "\n";
+    } else {
+        print "OK - no LIFs without failover-groups\n"
     }
+
     if($policy_count != 0){
-        print "Volumes with default snapshot policy:\n";
+        print "WARNING - volumes with default snapshot policy (*_root\$,test excluded):\n";
         foreach(@snap_policy){
             print "-> " . $_ . "\n";
         }
+        print "\n";
+    } else {
+        print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n"
     }
+
     exit 1;
 } else {
     print "OK - All recommendations are applied\n";
+    print "OK - no volumes withiout QOS\n";
+    print "OK - no volumes with wrong space-guarantee\n";
+    print "OK - no snapmirrors without schedule\n";
+    print "OK - no LIFs without failover-groups\n";
+    print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n";
+
     exit 0;
 }
 
