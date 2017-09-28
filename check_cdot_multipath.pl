@@ -10,6 +10,8 @@
 # did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
 # --
 
+use Data::Dumper;
+
 use 5.10.0;
 use strict;
 use warnings;
@@ -101,7 +103,9 @@ while(defined($next)){
             my @split = split(/:/,$disk_path_name);
 
             if((@split eq 2) && ($path_count ne $must_paths)){
-                push @failed_disks, $disk_name;
+                unless($path_count > $must_paths){
+                    push @failed_disks, $disk_name;
+                }
             }
         }
 	}
