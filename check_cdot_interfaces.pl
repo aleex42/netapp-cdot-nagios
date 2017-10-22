@@ -213,7 +213,7 @@ if(@failed_ports && @nic_errors){
     print @failed_ports;
     print " in ifgrp and not up\n";
     print join(" ", @nic_errors);
-    print " NICs with errors\n";
+    print " with CRC errors\n";
     exit 2;
 } elsif(@failed_ports){
     print "CRITICAL: ";
@@ -223,10 +223,10 @@ if(@failed_ports && @nic_errors){
 } elsif(@nic_errors){
     print "CRITICAL: ";
     print join(" ", @nic_errors);
-    print " with errors\n";
+    print " with CRC errors\n";
     exit 2;
 } else {
-    print "OK: All IFGRP fully active\n";
+    print "OK: All IFGRP fully active and no CRC errors\n";
     exit 0;
 }
 
