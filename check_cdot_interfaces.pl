@@ -121,7 +121,7 @@ while(defined($next)){
         my @lif_result = $lifs->children_get();
     
         foreach my $lif (@lif_result){
-   
+  
             my $node = $lif->child_get_string("node");
             my $name = $lif->child_get_string("port");
             my $state = $lif->child_get_string("link-status");
@@ -146,10 +146,84 @@ foreach my $node (keys %failed_ports){
     }
 }
 
-if(@failed_ports){
+my @nics;
+my $stats_output;
+my @nic_errors;
+
+my $stats = $s->invoke("perf-object-instance-list-info-iter", "objectname", "nic_common");
+
+my $nics = $stats->child_get("attributes-list");
+
+if($nics){
+
+    my @result = $nics->children_get();
+
+    foreach my $interface (@result){
+        my $uuid = $interface->child_get_string("uuid");
+        push(@nics, $uuid);
+    }
+
+    my $api = new NaElement('perf-object-get-instances');
+    my $xi = new NaElement('counters');
+    $api->child_add($xi);
+    $xi->child_add_string('counter','rx_total_errors');
+    $xi->child_add_string('counter','tx_total_errors');
+    my $xi1 = new NaElement('instance-uuids');
+    $api->child_add($xi1);
+
+    foreach my $nic_uuid (@nics){
+        $xi1->child_add_string('instance-uuid',$nic_uuid);
+    }
+
+    $api->child_add_string('objectname','nic_common');
+
+    $stats_output = $s->invoke_elem($api);
+
+    my $instances = $stats_output->child_get("instances");
+    if($instances){
+
+        my @instance_data = $instances->children_get("instance-data");
+
+        foreach my $nic (@instance_data){
+
+            my $nic_name = $nic->child_get_string("uuid");
+            $nic_name =~ s/kernel://;
+
+            my $counters = $nic->child_get("counters");
+            if($counters){
+
+                my @counter_result = $counters->children_get();
+
+                foreach my $counter (@counter_result){
+
+                    my $key = $counter->child_get_string("name");
+                    my $value = $counter->child_get_string("value");
+
+                    if($value > 10){
+                        push(@nic_errors, $nic_name);
+                    }
+                }
+            }
+        }
+    }
+}
+
+if(@failed_ports && @nic_errors){
     print "CRITICAL: ";
     print @failed_ports;
     print " in ifgrp and not up\n";
+    print join(" ", @nic_errors);
+    print " NICs with errors\n";
+    exit 2;
+} elsif(@failed_ports){
+    print "CRITICAL: ";
+    print @failed_ports;
+    print " in ifgrp and not up\n";
+    exit 2;
+} elsif(@nic_errors){
+    print "CRITICAL: ";
+    print join(" ", @nic_errors);
+    print " with errors\n";
     exit 2;
 } else {
     print "OK: All IFGRP fully active\n";
