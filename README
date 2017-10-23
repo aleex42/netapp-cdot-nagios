@@ -20,6 +20,9 @@ Plugins
     * check_cdot_disk.pl
       Checks Disk Healthiness
 
+    * check_cdot_fcp.pl
+      Checks FCP interface errors
+
     * check_cdot_global.pl
       Checks Global Healthiness
 
