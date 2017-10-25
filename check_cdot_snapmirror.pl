@@ -17,6 +17,7 @@ use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
 use Getopt::Long;
+use Data::Dumper;
 
 GetOptions(
     'hostname=s' => \my $Hostname,
@@ -25,8 +26,15 @@ GetOptions(
     'lag=i'      => \my $LagOpt,
     'volume=s'   => \my $VolumeName,
     'vserver=s'  => \my $VServer,
+    'exclude=s'  => \my @excludelistarray,
+    'regexp'     => \my $regexp,
+    'v|verbose'  => \my $verbose,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
+
+my %Excludelist;
+@Excludelist{@excludelistarray}=();
+my $excludeliststr = join "|", @excludelistarray;
 
 sub Error {
     print "$0: " . $_[0] . "\n";
@@ -65,6 +73,7 @@ my $next = "";
 my $snapmirror_failed = 0;
 my $snapmirror_ok = 0;
 my %failed_names;
+my @excluded_volumes;
 
 while(defined($next)){
 	unless($next eq ""){
@@ -96,24 +105,42 @@ while(defined($next)){
 		my $lag = $snap->child_get_string("lag-time");
 		my $dest_vol = $snap->child_get_string("destination-volume");
 		my $current_transfer = $snap->child_get_string("current-transfer-type");
-
+                if ($verbose) {
+                   print "[DEBUG] dest_vol=$dest_vol,\t status=$status,\t healthy=$healthy,\t lag=$lag\n";
+                }
+                if (exists $Excludelist{$dest_vol}) {
+                   push(@excluded_volumes,$dest_vol."\n");
+                   next;
+                }
+                if ($regexp and $excludeliststr) {
+                   if ($dest_vol =~ m/$excludeliststr/) {
+                     push(@excluded_volumes,$dest_vol."\n");
+                     next;
+                   }
+                }
 		if($healthy eq "false"){
-            if(! $current_transfer){
+                   if ($verbose) {
+                      print "[DEBUG] ".Dumper($snap);
+                   }
+                   if(! $current_transfer){
     			$failed_names{$dest_vol} = [ $healthy, $lag ];
     			$snapmirror_failed++;
-    		} elsif (($status eq "transferring") || ($status eq "finalizing")){
+                   } elsif (($status eq "transferring") || ($status eq "finalizing")){
     			$snapmirror_ok++;
-    		}
-        } else {
-            $snapmirror_ok++;
-        }
+    		   }
+                } else {
+                   $snapmirror_ok++;
+                }
 
-        if(defined($lag) && ($lag >= $LagOpt)){
-            unless(($failed_names{$dest_vol}) || ($status eq "transferring") || ($status eq "finalizing")){
-                $failed_names{$dest_vol} = [ $healthy, $lag ];
-                $snapmirror_failed++;
-            }
-        }
+                if(defined($lag) && ($lag >= $LagOpt)){
+                    if ($verbose) {
+                      print "[DEBUG] ".Dumper($snap);
+                    }
+                    unless(($failed_names{$dest_vol}) || ($status eq "transferring") || ($status eq "finalizing")){
+                        $failed_names{$dest_vol} = [ $healthy, $lag ];
+                        $snapmirror_failed++;
+                    }
+                }
 
 	}
 	$next = $snap_output->child_get_string("next-tag");
@@ -122,6 +149,7 @@ while(defined($next)){
 
 if ($snapmirror_failed) {
 	print "CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok\n";
+	print "Failing snapmirror(s):\n";
 	printf ("%-*s%*s%*s\n", 50, "Name", 10, "Healthy", 10, "Delay");
 	for my $vol ( keys %failed_names ) {
 		my $health_lag = $failed_names{$vol};
@@ -129,9 +157,13 @@ if ($snapmirror_failed) {
 		$health_lag_value[1] = "--- " unless $health_lag_value[1];
 		printf ("%-*s%*s%*s\n", 50, $vol, 10, $health_lag_value[0], 10, $health_lag_value[1] . "s");
 	}
+        print "\nExcluded volume(s):\n";
+        print "@excluded_volumes\n";
 	exit 2;
 } else {
 	print "OK: $snapmirror_ok snapmirror(s) ok\n";
+        print "\nExcluded volume(s):\n";
+        print "@excluded_volumes\n";
 	exit 0;
 }
 
@@ -141,13 +173,14 @@ __END__
 
 =head1 NAME
 
-check_cdot_snapmirror - Checks SnapMirror Healthnes
+check_cdot_snapmirror - Checks SnapMirror Healthness
 
 =head1 SYNOPSIS
 
 check_cdot_snapmirror.pl --hostname HOSTNAME --username USERNAME
            --password PASSWORD [--lag DELAY-SECONDS]
-           [--volume VOLUME-NAME] [--vserver VSERVER-NAME]
+           [--volume VOLUME-NAME] [--vserver VSERVER-NAME] 
+           [--exclude VOLUME-NAME] [--regexp] [--verbose]
 
 =head1 DESCRIPTION
 
@@ -180,6 +213,18 @@ Name of the destination volume to be checked. If not specified, check all volume
 =item --vserver VSERVER-NAME
 
 Name of the destination vserver to be checked. If not specificed, search only the base server.
+
+=item --exclude
+
+Optional: The name of a volume that has to be excluded from the checks (multiple exclude item for multiple volumes)
+
+=item --regexp
+
+Optional: Enable regexp matching for the exclusion list
+
+=item -v | --verbose
+
+Enable verbose mode
 
 =item -help
 
