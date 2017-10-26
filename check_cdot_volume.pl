@@ -242,7 +242,7 @@ while(defined($next)){
 	}
 	
 	my $volumes = $output->child_get("attributes-list");
-	
+
 	unless($volumes){
 	    print "CRITICAL: no volume matching this name\n";
 	    exit 2;
@@ -298,20 +298,16 @@ while(defined($next)){
             my $space_total = $perfdata{$vol_name}{'byte_total'}/1073741824;
 
             if($space_used >1024){
-
                 $space_used /= 1024;
                 $space_total /= 1024;
                 $space_used = sprintf("%.2f TB", $space_used);
                 $space_total = sprintf("%.2f TB", $space_total);
-
             } else {
-
                 $space_used = sprintf("%.2f GB", $space_used);
                 $space_total = sprintf("%.2f GB", $space_total);
-
             }
 
-			if(($percent>$SizeCritical) || ($inode_percent>$InodeCritical) || ($snapusedpct > $SnapCritical)){
+			if(($percent>$SizeCritical) || ($inode_percent>$InodeCritical) || (($SnapIgnore eq "true") && ($snapusedpct > $SnapCritical))){
 
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
@@ -326,6 +322,7 @@ while(defined($next)){
 					$crit_msg .= "Size: $space_used/$space_total, $percent%[>$SizeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_w'} = 1;
 				}
+
 				if ($inode_percent>$InodeCritical){
 					$crit_msg .= "Inodes: $inode_percent%[>$InodeCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_c'} = 1;
@@ -333,19 +330,21 @@ while(defined($next)){
 					$crit_msg .= "Inodes: $inode_percent%[>$InodeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_w'} = 1;
 				}
-                unless($SnapIgnore eq "true"){
-					if ($snapusedpct > $SnapCritical){
-						$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapCritical%], ";
-						$h_warn_crit_info->{$vol_name}->{'snap_percent_c'} = 1;
-					} elsif ($snapusedpct > $SnapWarning){
-						$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
-						$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
-					}
-				}
-				chop($crit_msg); chop($crit_msg); $crit_msg .= ")";
-				push (@crit_msg, "$crit_msg" );
 
-			} elsif (($percent>$SizeWarning) || ($inode_percent>$InodeWarning) || ($snapusedpct > $SnapWarning)){
+				if ($snapusedpct > $SnapCritical){
+
+					$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapCritical%], ";
+					$h_warn_crit_info->{$vol_name}->{'snap_percent_c'} = 1;
+				} elsif ($snapusedpct > $SnapWarning){
+					$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
+					$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
+				}
+
+                chop($crit_msg); chop($crit_msg); $crit_msg .= ")";
+                push (@crit_msg, "$crit_msg" );
+
+			} elsif (($percent>$SizeWarning) || ($inode_percent>$InodeWarning) || (($SnapIgnore eq "true") && ($snapusedpct > $SnapWarning))){
+
 
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
@@ -360,14 +359,13 @@ while(defined($next)){
 					$warn_msg .= "Inodes: $inode_percent%[>$InodeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_w'} = 1;
 				}
-                unless($SnapIgnore eq "true"){
-					if ($snapusedpct > $SnapWarning){
-						$warn_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
-						$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
-					}
+				if ($snapusedpct > $SnapWarning){
+					$warn_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
+					$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
 				}
 				chop($warn_msg); chop($warn_msg); $warn_msg .= ")";				
 				push (@warn_msg, "$warn_msg" );
+
 			} else {
 				if ($SnapIgnore eq "true"){
 					push (@ok_msg, "$vol_name (Size: $space_used/$space_total, $percent%, Inodes: $inode_percent%)" );
@@ -439,7 +437,8 @@ if(scalar(@crit_msg) ){
     print $strHTML if $output_html;
 	exit 1;
 } elsif(scalar(@ok_msg) ){
-    print "OK: $volume_count volumes ok";
+    print "OK: ";
+    print join (" ", @ok_msg);
     if ($perf) {
                 if($perfdatadir) {
                         perfdata_to_file($STARTTIME, $perfdatadir, $hostdisplay, $perfdataservicedesc, $perfdataallstr);
