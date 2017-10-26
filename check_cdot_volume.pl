@@ -23,6 +23,7 @@ my $STARTTIME_HR = Time::HiRes::time();           # time of program start, high 
 my $STARTTIME    = sprintf("%.0f",$STARTTIME_HR); # time of program start
 
 GetOptions(
+    'output-html' => \my $output_html,
     'H|hostname=s' => \my $Hostname,
     'u|username=s' => \my $Username,
     'p|password=s' => \my $Password,
@@ -290,10 +291,13 @@ while(defined($next)){
 			$perfdata{$vol_name}{'snap_used'}=$snapused;
 	
 			if(($percent>$SizeCritical) || ($inode_percent>$InodeCritical) || ($snapusedpct > $SnapCritical)){
+
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
 				$h_warn_crit_info->{$vol_name}->{'snap_percent'}=$snapusedpct;
+
 				my $crit_msg = "$vol_name (";
+
 				if ($percent>$SizeCritical){
 					$crit_msg .= "Size: $percent%[>$SizeCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_c'} = 1;
@@ -319,11 +323,14 @@ while(defined($next)){
 				}
 				chop($crit_msg); chop($crit_msg); $crit_msg .= ")";
 				push (@crit_msg, "$crit_msg" );
+
 			} elsif (($percent>$SizeWarning) || ($inode_percent>$InodeWarning) || ($snapusedpct > $SnapWarning)){
+
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
 				$h_warn_crit_info->{$vol_name}->{'snap_percent'}=$snapusedpct;
 				my $warn_msg = "$vol_name (";
+
 				if ($percent>$SizeWarning){
 					$warn_msg .= "Size: $percent%[>$SizeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_w'} = 1;
@@ -392,7 +399,7 @@ if(scalar(@crit_msg) ){
 		print "|\n";
 	}
 	my $strHTML = draw_html_table($h_warn_crit_info);
-    print $strHTML;
+    print $strHTML if $output_html; 
 	exit 2;
 } elsif(scalar(@warn_msg) ){
     print "WARNING: ";
@@ -408,7 +415,7 @@ if(scalar(@crit_msg) ){
                 print "|\n";
         }
     my $strHTML = draw_html_table($h_warn_crit_info);
-    print $strHTML;
+    print $strHTML if $output_html;
 	exit 1;
 } elsif(scalar(@ok_msg) ){
     print "OK: $volume_count volumes ok";
