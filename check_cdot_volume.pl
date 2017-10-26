@@ -307,7 +307,7 @@ while(defined($next)){
                 $space_total = sprintf("%.2f GB", $space_total);
             }
 
-			if(($percent>$SizeCritical) || ($inode_percent>$InodeCritical) || (($SnapIgnore eq "true") && ($snapusedpct > $SnapCritical))){
+			if(($percent>$SizeCritical) || ($inode_percent>$InodeCritical) || (($SnapIgnore eq "false") && ($snapusedpct > $SnapCritical))){
 
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
@@ -343,8 +343,7 @@ while(defined($next)){
                 chop($crit_msg); chop($crit_msg); $crit_msg .= ")";
                 push (@crit_msg, "$crit_msg" );
 
-			} elsif (($percent>$SizeWarning) || ($inode_percent>$InodeWarning) || (($SnapIgnore eq "true") && ($snapusedpct > $SnapWarning))){
-
+			} elsif (($percent>$SizeWarning) || ($inode_percent>$InodeWarning) || (($SnapIgnore eq "false") && ($snapusedpct > $SnapWarning))){
 
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
