@@ -184,23 +184,28 @@ if($nics){
 
         my @instance_data = $instances->children_get("instance-data");
 
-        foreach my $nic (@instance_data){
+        foreach my $nic_element (@instance_data){
 
-            my $nic_name = $nic->child_get_string("uuid");
+            my $nic_name = $nic_element->child_get_string("uuid");
             $nic_name =~ s/kernel://;
 
-            my $counters = $nic->child_get("counters");
-            if($counters){
+            my ($node,$nic) = split(/:/,$nic_name);
+            
+            unless( grep(/$nic/, @{$failed_ports{$node}})){
 
-                my @counter_result = $counters->children_get();
+                my $counters = $nic_element->child_get("counters");
+                if($counters){
 
-                foreach my $counter (@counter_result){
+                    my @counter_result = $counters->children_get();
 
-                    my $key = $counter->child_get_string("name");
-                    my $value = $counter->child_get_string("value");
+                    foreach my $counter (@counter_result){
+                    
+                        my $key = $counter->child_get_string("name");
+                        my $value = $counter->child_get_string("value");
 
-                    if($value > 10){
-                        push(@nic_errors, $nic_name);
+                        if($value > 10){
+                            push(@nic_errors, $nic_name);
+                        }
                     }
                 }
             }
