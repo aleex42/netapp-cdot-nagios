@@ -102,6 +102,8 @@ while(defined($next)){
 
     foreach my $aggr (@result){
 
+print Dumper($aggr);
+
         my $aggr_name = $aggr->child_get_string("aggregate-name");
 
     	# exclude root aggregates

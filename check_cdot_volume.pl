@@ -38,6 +38,7 @@ GetOptions(
     'V|volume=s'   => \my $Volume,
     'vserver=s'  => \my $Vserver,
     'exclude=s'	 =>	\my @excludelistarray,
+    'regexp'            => \my $regexp,
     'perfdatadir=s' => \my $perfdatadir,
     'perfdataservicedesc=s' => \my $perfdataservicedesc,
     'hostdisplay=s' => \my $hostdisplay,
@@ -46,6 +47,7 @@ GetOptions(
 
 my %Excludelist;
 @Excludelist{@excludelistarray}=();
+my $excludeliststr = join "|", @excludelistarray;
 
 sub Error {
     print "$0: " . $_[0] . "\n";
@@ -280,7 +282,13 @@ while(defined($next)){
 			my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
 			
 			next if exists $Excludelist{$vol_name};
-			
+		
+            if ($regexp and $excludeliststr) {
+                if ($vol_name =~ m/$excludeliststr/) {
+                    next;
+                }
+            }
+	
 			my $vol_space = $vol->child_get("volume-space-attributes");
 			my $percent = $vol_space->child_get_int("percentage-size-used");
 			my $snaptotal = $vol_space->child_get_int("snapshot-reserve-size");
