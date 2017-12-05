@@ -47,6 +47,7 @@ Error('Option --critical needed!') unless $Critical;
 my $perfmsg;
 my $critical = 0;
 my $warning = 0;
+my $ok = 0;
 my $crit_msg;
 my $warn_msg;
 my $ok_msg;
@@ -135,6 +136,8 @@ while(defined($next)){
                     $warn_msg .= $aggr_name . " (" . $percent . "%)";
                 }
             } else {
+                
+                $ok++;
 
                 if ($ok_msg){
                     $ok_msg .= ", " . $aggr_name . " (" . $percent . "%)";
@@ -161,18 +164,26 @@ if($critical > 0){
     if($warning >0){
         print "WARNING: $warn_msg\n\n";
     }
-    print "OK: $ok_msg";
+    if($ok >0){
+        print "OK: $ok_msg";
+    }
     if($perf) {print"|" . $perfmsg;}
     print  "\n";
     exit 2;
 } elsif($warning > 0){
     print "WARNING: $warn_msg\n\n";
-    print "OK: $ok_msg";
+    if($ok >0){
+        print "OK: $ok_msg";
+    }
     if($perf){print"|" . $perfmsg;}
     print  "\n";    
     exit 1;
 } else {
-    print "OK: $ok_msg";
+    if($ok >0){
+        print "OK: $ok_msg";
+    } else { 
+        print "OK - but no output\n";
+    }
     if($perf){print"|" . $perfmsg;}    
     print  "\n";    
     exit 0;
