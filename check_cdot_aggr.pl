@@ -181,7 +181,7 @@ if($critical > 0){
 } else {
     if($ok >0){
         print "OK: $ok_msg";
-    } else { 
+    } else {
         print "OK - but no output\n";
     }
     if($perf){print"|" . $perfmsg;}    
