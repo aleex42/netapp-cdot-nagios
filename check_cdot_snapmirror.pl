@@ -92,8 +92,7 @@ while(defined($next)){
 	my $num_records = $snap_output->child_get_string("num-records");
 
 	if($num_records eq 0){
-		print "OK - No snapmirrors\n";
-		exit 0;
+        last;
 	}
 
 	my @snapmirrors = $snap_output->child_get("attributes-list")->children_get();
