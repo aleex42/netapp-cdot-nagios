@@ -266,7 +266,7 @@ while(defined($next)){
         my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
         my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
 
-        if($Volume) {
+        if($Volume && $Vserver) {
             if($vserver_name ne $Vserver) {
                 next;
             }
