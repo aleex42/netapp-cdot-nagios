@@ -105,7 +105,8 @@ while(defined($next)){
 
 if (@old_snapshots) {
     print @old_snapshots . " snapshot(s) older than $AgeOpt seconds:\n";
-    print "@old_snapshots\n";
+    print join("\n", @old_snapshots);
+    print "\n";
     exit 1;
 }
 else {
