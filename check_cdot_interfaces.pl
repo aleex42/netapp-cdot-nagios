@@ -166,8 +166,8 @@ if($nics){
     my $api = new NaElement('perf-object-get-instances');
     my $xi = new NaElement('counters');
     $api->child_add($xi);
-    $xi->child_add_string('counter','rx_total_errors');
-    $xi->child_add_string('counter','tx_total_errors');
+    $xi->child_add_string('counter','rx_crc_errors');
+
     my $xi1 = new NaElement('instance-uuids');
     $api->child_add($xi1);
 
@@ -180,6 +180,7 @@ if($nics){
     $stats_output = $s->invoke_elem($api);
 
     my $instances = $stats_output->child_get("instances");
+
     if($instances){
 
         my @instance_data = $instances->children_get("instance-data");
@@ -190,7 +191,7 @@ if($nics){
             $nic_name =~ s/kernel://;
 
             my ($node,$nic) = split(/:/,$nic_name);
-            
+    
             unless( grep(/$nic/, @{$failed_ports{$node}})){
 
                 my $counters = $nic_element->child_get("counters");
