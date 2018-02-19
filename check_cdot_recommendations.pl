@@ -90,14 +90,17 @@ while(defined($next)){
             my $policy = $snap_info->child_get_string("snapshot-policy");
             my $vol_info = $vol->child_get("volume-id-attributes");
             my $vol_name = $vol_info->child_get_string("name");
-   
-            if($policy){
-                if($policy eq "default"){
-                    push(@snap_policy, $vol_name);
+  
+            my $vol_type = $vol_info->child_get_string("type");
+
+            unless($vol_type eq "dp"){
+ 
+                if($policy){
+                    if($policy eq "default"){
+                        push(@snap_policy, $vol_name);
+                    }
                 }
             }
-    	
-    	    my $vol_type = $vol_info->child_get_string("type");
     	
     	    my $vol_state = $vol->child_get("volume-state-attributes");
     	    if($vol_state){
