@@ -113,9 +113,6 @@ foreach my $node (@node_result){
 my $failed_count = @failed_ports;
 my $ics_count = %failed_ics;
 
-print Dumper(@failed_ports);
-print Dumper(%failed_ics);
-
 if(($failed_count != 0) || ( $ics_count != 0)){
     print "CRITICAL:";
     foreach (@failed_ports){
