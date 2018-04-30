@@ -36,7 +36,7 @@ Error('Option --hostname needed!') unless $Hostname;
 Error('Option --username needed!') unless $Username;
 Error('Option --password needed!') unless $Password;
 
-my $s = NaServer->new( $Hostname, 1, 3 );
+my $s = NaServer->new( $Hostname, 1, 3);
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );

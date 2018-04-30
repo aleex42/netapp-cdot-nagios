@@ -81,35 +81,38 @@ while(defined($next)){
     $iterator->child_add_string("max-records", 100);
     my $output = $s->invoke_elem($iterator);
 
-	if ($output->results_errno != 0) {
-	    my $r = $output->results_reason();
-	    print "UNKNOWN: $r\n";
-	    exit 3;
-	}
-	
-	my $heads = $output->child_get("attributes-list");
-	my @result = $heads->children_get();
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
 
-	foreach my $disk (@result){
-	
-	    my $paths = $disk->child_get("disk-paths");
-	    my $path_count = $paths->children_get("disk-path-info");
-	    my $disk_name = $disk->child_get_string("disk-name");
-        my $path_info = $paths->child_get("disk-path-info");
+    unless($output->child_get_int("num-records") eq "0"){
 
-        foreach my $path ($path_info){
+        my $heads = $output->child_get("attributes-list");
+        my @result = $heads->children_get();
 
-            my $disk_path_name = $path->child_get_string("disk-name");
-            my @split = split(/:/,$disk_path_name);
+        foreach my $disk (@result){
 
-            if((@split eq 2) && ($path_count ne $must_paths)){
-                unless($path_count > $must_paths){
-                    push @failed_disks, $disk_name;
+            my $paths = $disk->child_get("disk-paths");
+            my $path_count = $paths->children_get("disk-path-info");
+            my $disk_name = $disk->child_get_string("disk-name");
+            my $path_info = $paths->child_get("disk-path-info");
+
+            foreach my $path ($path_info){
+
+                my $disk_path_name = $path->child_get_string("disk-name");
+                my @split = split(/:/,$disk_path_name);
+
+                if((@split eq 2) && ($path_count ne $must_paths)){
+                    unless($path_count > $must_paths){
+                        push @failed_disks, $disk_name;
+                    }
                 }
             }
         }
-	}
-	$next = $output->child_get_string("next-tag");
+    }
+    $next = $output->child_get_string("next-tag");
 }
 
 if (@failed_disks) {

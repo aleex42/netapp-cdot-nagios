@@ -61,65 +61,69 @@ while(defined($next)){
     $iterator->child_add_string("max-records", 100);
     my $output = $s->invoke_elem($iterator);
 
-	if ($output->results_errno != 0) {
-    	my $r = $output->results_reason();
-    	print "UNKNOWN: $r\n";
-    	exit 3;
-	}
-	
-	my $disks = $output->child_get("attributes-list");
-	my @result = $disks->children_get();
-	
-	foreach my $disk (@result) {
-	    my $raid_type = $disk->child_get("disk-raid-info");
-	    my $container = $raid_type->child_get_string('container-type');
-	
-	    $disk_count++;
-	
-	    if ( $container eq 'shared' ) {
-	        # Dig deeper
-		my $shared_info = $raid_type->child_get("disk-shared-info");
-		my $temp = $shared_info->child_get_string('is-reconstructing');
-		if ($temp eq 'true') {
-		    $inventory{'Rebuilding'}++;
-		} else {
-		    $temp = $shared_info->child_get_string('is-replacing');
-		    if ($temp eq 'true') {
-			# Also count as Rebuilding
-			$inventory{'Rebuilding'}++;
-		    } else {
-		    	$inventory{'Aggregate'}++;
-		    }
-		}
-	    } elsif ( $container eq 'spare' ) {
-	    	$inventory{'Spare'}++;
-	    } elsif ( $container eq 'aggregate' ) {
-	    	# Dig deeper
-		my $aggr_info = $raid_type->child_get('disk-aggregate-info');
-		my $temp = $aggr_info->child_get_string('is-reconstructing');
-		if ($temp eq 'true') {
-		    $inventory{'Rebuilding'}++;
-		} else {
-		    $temp = $aggr_info->child_get_string('is-replacing');
-		    if ($temp eq 'true') {
-			# Also count as Rebuilding
-			$inventory{'Rebuilding'}++;
-		    } else {
-		        $inventory{'Aggregate'}++;
-		    }
-		}
-	    } else {
-		my $owner = $disk->child_get("disk-ownership-info");
-		my $diskstate = $owner->child_get_string('is-failed');
-		if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
-		    push @disk_list, $disk->child_get_string('disk-name');
-		    $inventory{'Failed'}++;
-		} else {
-		    $inventory{'Aggregate'}++;
-		}
-	    }
-	}
-	$next = $output->child_get_string("next-tag");
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
+
+    unless($output->child_get_int("num-records") eq "0"){
+
+        my $disks = $output->child_get("attributes-list");
+        my @result = $disks->children_get();
+
+        foreach my $disk (@result) {
+            my $raid_type = $disk->child_get("disk-raid-info");
+            my $container = $raid_type->child_get_string('container-type');
+
+            $disk_count++;
+
+            if ( $container eq 'shared' ) {
+                # Dig deeper
+                my $shared_info = $raid_type->child_get("disk-shared-info");
+                my $temp = $shared_info->child_get_string('is-reconstructing');
+                if ($temp eq 'true') {
+                    $inventory{'Rebuilding'}++;
+                } else {
+                    $temp = $shared_info->child_get_string('is-replacing');
+                    if ($temp eq 'true') {
+                        # Also count as Rebuilding
+                        $inventory{'Rebuilding'}++;
+                    } else {
+                        $inventory{'Aggregate'}++;
+                    }
+                }
+            } elsif ( $container eq 'spare' ) {
+                $inventory{'Spare'}++;
+            } elsif ( $container eq 'aggregate' ) {
+                # Dig deeper
+                my $aggr_info = $raid_type->child_get('disk-aggregate-info');
+                my $temp = $aggr_info->child_get_string('is-reconstructing');
+                if ($temp eq 'true') {
+                    $inventory{'Rebuilding'}++;
+                } else {
+                    $temp = $aggr_info->child_get_string('is-replacing');
+                    if ($temp eq 'true') {
+                        # Also count as Rebuilding
+                        $inventory{'Rebuilding'}++;
+                    } else {
+                        $inventory{'Aggregate'}++;
+                    }
+                }
+            } else {
+                my $owner = $disk->child_get("disk-ownership-info");
+                my $diskstate = $owner->child_get_string('is-failed');
+                if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
+                    push @disk_list, $disk->child_get_string('disk-name');
+                    $inventory{'Failed'}++;
+                } else {
+                    $inventory{'Aggregate'}++;
+                }
+            }
+        }
+    }
+    $next = $output->child_get_string("next-tag");
+
 }
 
 my $perfdatastr='';
