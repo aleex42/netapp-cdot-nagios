@@ -69,9 +69,18 @@ foreach my $head (@result){
     my $ifgrp_output = $s->invoke_elem($ifgrp_iterator);
 
     if ($ifgrp_output->results_errno != 0) {
-        my $r = $ifgrp_output->results_reason();
-    	print "UNKNOWN: $r\n";
-    	exit 3;
+
+        $ifgrp_iterator = NaElement->new("net-port-ifgrp-get");
+        $ifgrp_iterator->child_add_string("node", $node_name);
+        $ifgrp_iterator->child_add_string("ifgrp-name", "a0b");
+        $ifgrp_output = $s->invoke_elem($ifgrp_iterator);
+
+        if ($ifgrp_output->results_errno != 0) {
+            my $r = $ifgrp_output->results_reason();
+        	print "UNKNOWN: $r\n";
+        	exit 3;
+        }
+
     }
 
     my $ifgrps = $ifgrp_output->child_get("attributes");
