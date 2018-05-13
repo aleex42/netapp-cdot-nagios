@@ -69,9 +69,16 @@ foreach my $head (@result) {
     my $ifgrp_output = $s->invoke_elem( $ifgrp_iterator );
 
     if ($ifgrp_output->results_errno != 0) {
-        my $r = $ifgrp_output->results_reason();
-        print "UNKNOWN: $r\n";
-        exit 3;
+        $ifgrp_iterator = NaElement->new( "net-port-ifgrp-get" );
+        $ifgrp_iterator->child_add_string( "node", $node_name );
+        $ifgrp_iterator->child_add_string( "ifgrp-name", "a0b" );
+        $ifgrp_output = $s->invoke_elem( $ifgrp_iterator );
+
+        if ($ifgrp_output->results_errno != 0) {
+          my $r = $ifgrp_output->results_reason();
+        	print "UNKNOWN: $r\n";
+        	exit 3;
+        }
     }
 
     my $ifgrps = $ifgrp_output->child_get( "attributes" );
@@ -115,16 +122,20 @@ while(defined( $next )){
     }
 
     my $lifs = $lif_output->child_get( "attributes-list" );
-    my @lif_result = $lifs->children_get();
 
-    foreach my $lif (@lif_result) {
+    if($lifs) {
 
-        my $node = $lif->child_get_string( "node" );
-        my $name = $lif->child_get_string( "port" );
-        my $state = $lif->child_get_string( "link-status" );
-
-        if ($state ne "up") {
-            push( @{$failed_ports{$node}}, $name );
+        my @lif_result = $lifs->children_get();
+    
+        foreach my $lif (@lif_result) {
+  
+            my $node = $lif->child_get_string( "node" );
+            my $name = $lif->child_get_string( "port" );
+            my $state = $lif->child_get_string( "link-status" );
+  
+            if($state ne "up") {
+                push( @{$failed_ports{$node}}, $name);
+            }
         }
     }
 
@@ -142,13 +153,93 @@ foreach my $node (keys %failed_ports) {
     }
 }
 
-if (@failed_ports) {
+my @nics;
+my $stats_output;
+my @nic_errors;
+
+my $stats = $s->invoke( "perf-object-instance-list-info-iter", "objectname", "nic_common" );
+
+my $nics = $stats->child_get( "attributes-list" );
+
+if($nics) {
+
+    my @result = $nics->children_get();
+
+    foreach my $interface (@result) {
+        my $uuid = $interface->child_get_string( "uuid" );
+        push(@nics, $uuid);
+    }
+
+    my $api = new NaElement( "perf-object-get-instances" );
+    my $xi = new NaElement( "counters" );
+    $api->child_add( $xi );
+    $xi->child_add_string( "counter", "rx_crc_errors" );
+
+    my $xi1 = new NaElement( "instance-uuids" );
+    $api->child_add( $xi1 );
+
+    foreach my $nic_uuid (@nics) {
+        $xi1->child_add_string( "instance-uuid", $nic_uuid );
+    }
+
+    $api->child_add_string("objectname", "nic_common" );
+
+    $stats_output = $s->invoke_elem( $api );
+
+    my $instances = $stats_output->child_get( "instances" );
+
+    if($instances) {
+
+        my @instance_data = $instances->children_get( "instance-data" );
+
+        foreach my $nic_element (@instance_data) {
+
+            my $nic_name = $nic_element->child_get_string( "uuid" );
+            $nic_name =~ s/kernel://;
+
+            my ($node, $nic) = split( /:/, $nic_name );
+    
+            unless( grep( /$nic/, @{$failed_ports{$node}} )) {
+
+                my $counters = $nic_element->child_get( "counters" );
+                if($counters) {
+
+                    my @counter_result = $counters->children_get();
+
+                    foreach my $counter (@counter_result) {
+                    
+                        my $key = $counter->child_get_string( "name" );
+                        my $value = $counter->child_get_string( "value" );
+
+                        if($value > 10) {
+                            push(@nic_errors, $nic_name);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+if(@failed_ports && @nic_errors) {
+    print "CRITICAL: ";
+    print @failed_ports;
+    print " in ifgrp and not up\n";
+    print join(" ", @nic_errors);
+    print " with CRC errors\n";
+    exit 2;
+} elsif(@failed_ports){
     print "CRITICAL: ";
     print @failed_ports;
     print " in ifgrp and not up\n";
     exit 2;
+} elsif(@nic_errors){
+    print "CRITICAL: ";
+    print join(" ", @nic_errors);
+    print " with CRC errors\n";
+    exit 2;
 } else {
-    print "OK: All IFGRP fully active\n";
+    print "OK: All IFGRP fully active and no CRC errors\n";
     exit 0;
 }
 

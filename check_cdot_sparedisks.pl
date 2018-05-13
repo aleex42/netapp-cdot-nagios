@@ -59,23 +59,26 @@ while(defined( $next )){
         exit 3;
     }
 
-    my $disks = $output->child_get( "attributes-list" );
-    my @result = $disks->children_get();
+    unless($output->child_get_int( "num-records" ) eq "0") {
 
-    foreach my $disk (@result) {
+        my $disks = $output->child_get( "attributes-list" );
+        my @result = $disks->children_get();
 
-        my $raid_info = $disk->child_get( "disk-raid-info" );
-        my $type = $raid_info->child_get_string( "container-type" );
+        foreach my $disk (@result) {
 
-        if ($type eq "spare") {
-            my $spare_info = $raid_info->child_get( "disk-spare-info" );
-            my $zeroed = $spare_info->child_get_string( 'is-zeroed' );
+            my $raid_info = $disk->child_get( "disk-raid-info" );
+            my $type = $raid_info->child_get_string( "container-type" );
 
-            if ($zeroed eq "false") {
-                $not_zeroed++;
+            if ($type eq "spare") {
+                my $spare_info = $raid_info->child_get( "disk-spare-info" );
+                my $zeroed = $spare_info->child_get_string( 'is-zeroed' );
+
+                if ($zeroed eq "false") {
+                    $not_zeroed++;
+                }
+            } elsif ($type eq "unassigned") {
+                $not_assigned++;
             }
-        } elsif ($type eq "unassigned") {
-            $not_assigned++;
         }
     }
     $next = $output->child_get_string( "next-tag" );

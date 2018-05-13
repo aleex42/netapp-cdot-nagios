@@ -20,6 +20,9 @@ Plugins
     * check_cdot_disk.pl
       Checks Disk Healthiness
 
+    * check_cdot_fcp.pl
+      Checks FCP interface errors
+
     * check_cdot_global.pl
       Checks Global Healthiness
 
@@ -49,6 +52,9 @@ Plugins
 
     * check_cdot_interfaces.pl
       Checks Interface Group Status
+
+    * check_cdot_wrong_aggregte.pl
+      Checks dedicated Aggregates for SnapMirror
 
 Examples
 --------

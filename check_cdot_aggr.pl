@@ -16,20 +16,20 @@ use warnings;
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 use Data::Dumper;
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'warning=i'  => \my $Warning,
-    'critical=i' => \my $Critical,
-    'aggr=s'     => \my $Aggr,
-    'perf'       => \my $perf,
-    'exclude=s'  => \my @excludelistarray,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
-) or Error( "$0: Error in command line arguments\n" );
+    'H|hostname=s' => \my $Hostname,
+    'u|username=s' => \my $Username,
+    'p|password=s' => \my $Password,
+    'w|warning=i'  => \my $Warning,
+    'c|critical=i' => \my $Critical,
+    'A|aggr=s'     => \my $Aggr,
+    'P|perf'       => \my $perf,
+    'exclude=s'    => \my @excludelistarray,
+    'h|help'       => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+) or Error("$0: Error in command line arguments\n");
 
 my %Excludelist;
 @Excludelist{@excludelistarray} = ();
@@ -45,9 +45,12 @@ Error( 'Option --warning needed!' ) unless $Warning;
 Error( 'Option --critical needed!' ) unless $Critical;
 
 my $perfmsg;
-my $message;
 my $critical = 0;
 my $warning = 0;
+my $ok = 0;
+my $crit_msg;
+my $warn_msg;
+my $ok_msg;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type( "HTTPS" );
@@ -102,28 +105,53 @@ while(defined( $next )){
 
         my $aggr_name = $aggr->child_get_string( "aggregate-name" );
 
-        unless ($aggr_name =~ m/^aggr0_/) {
+        # exclude root aggregates
+        unless($aggr_name =~ m/^aggr0_/) {
 
             next if exists $Excludelist{$aggr_name};
 
             my $space = $aggr->child_get( "aggr-space-attributes" );
+            my $bytesused = $space->child_get_int( "size-used" );
+            my $bytesavail = $space->child_get_int( "size-available" );
+            my $bytestotal = $space->child_get_int( "size-total" );
             my $percent = $space->child_get_int( "percent-used-capacity" );
 
-            $critical++ if $percent >= $Critical;
-            $warning++ if $percent >= $Warning;
+            if($percent >= $Critical) {
 
-            if ($message) {
-                $message .= ", ".$aggr_name." (".$percent."%)";
-            }
-            else {
-                $message .= $aggr_name." (".$percent."%)";
+                $critical++;
+                
+                if($crit_msg) {
+                    $crit_msg .= ", " . $aggr_name . " (" . $percent . "%)";
+                } else {
+                    $crit_msg .= $aggr_name . " (" . $percent . "%)";
+                }
+
+            } elsif ($percent >= $Warning) {
+
+                $warning++;
+
+                if ($warn_msg) {
+                    $warn_msg .= ", " . $aggr_name . " (" . $percent . "%)";
+                } else {
+                    $warn_msg .= $aggr_name . " (" . $percent . "%)";
+                }
+            } else {
+                
+                $ok++;
+
+                if ($ok_msg) {
+                    $ok_msg .= ", " . $aggr_name . " (" . $percent . "%)";
+                } else {
+                    $ok_msg .= $aggr_name . " (" . $percent . "%)";
+                }   
             }
 
             if ($perf) {
-                $perfmsg .= " $aggr_name=$percent%;$Warning;$Critical";
-            }
-            else {
-                $perfmsg .= "$aggr_name=$percent%;$Warning;$Critical";
+
+                my $warn_bytes = $Warning*$bytestotal/100;
+                my $crit_bytes = $Critical*$bytestotal/100;
+
+                $perfmsg .= " $aggr_name=${bytesused}B;$warn_bytes;$crit_bytes;0;$bytestotal";
             }
         }
     }
@@ -131,20 +159,33 @@ while(defined( $next )){
     $next = $output->child_get_string( "next-tag" );
 }
 
-if ($critical > 0) {
-    print "CRITICAL: ".$message;
-    if ($perf) {print"|".$perfmsg;}
+if($critical > 0) {
+    print "CRITICAL: $crit_msg\n\n";
+    if($warning > 0) {
+        print "WARNING: $warn_msg\n\n";
+    }
+    if($ok > 0) {
+        print "OK: $ok_msg";
+    }
+    if($perf) {print"|" . $perfmsg;}
     print  "\n";
     exit 2;
-} elsif ($warning > 0) {
-    print "WARNING: ".$message;
-    if ($perf) {print"|".$perfmsg;}
-    print  "\n";
+} elsif($warning > 0) {
+    print "WARNING: $warn_msg\n\n";
+    if($ok > 0) {
+        print "OK: $ok_msg";
+    }
+    if($perf) {print"|" . $perfmsg;}
+    print  "\n";    
     exit 1;
 } else {
-    print "OK: ".$message;
-    if ($perf) {print"|".$perfmsg;}
-    print  "\n";
+    if($ok > 0) {
+        print "OK: $ok_msg";
+    } else {
+        print "OK - but no output\n";
+    }
+    if($perf) {print"|" . $perfmsg;}    
+    print  "\n";    
     exit 0;
 }
 
@@ -158,9 +199,9 @@ check_cdot_aggr - Check Aggregate real Space Usage
 
 =head1 SYNOPSIS
 
-check_cdot_aggr.pl --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD --warning PERCENT_WARNING \
-           --critical PERCENT_CRITICAL (--perf) (--aggr AGGR)
+check_cdot_aggr.pl -H HOSTNAME -u USERNAME \
+           -p PASSWORD -w PERCENT_WARNING \
+           -c PERCENT_CRITICAL [--perf|-P] [--aggr AGGR]
 
 =head1 DESCRIPTION
 
@@ -171,31 +212,31 @@ if warning or critical Thresholds are reached
 
 =over 4
 
-=item --hostname FQDN
+=item -H | --hostname FQDN
 
 The Hostname of the NetApp to monitor
 
-=item --username USERNAME
+=item -u | --username USERNAME
 
 The Login Username of the NetApp to monitor
 
-=item --password PASSWORD
+=item -p | --password PASSWORD
 
 The Login Password of the NetApp to monitor
 
-=item --warning PERCENT_WARNING
+=item -w | --warning PERCENT_WARNING
 
 The Warning threshold
 
-=item --critical PERCENT_CRITICAL
+=item -c | --critical PERCENT_CRITICAL
 
 The Critical threshold
 
-=item --perf
+=item -P | --perf
 
 Flag for performance data output
 
-=item --aggr
+=item -A | --aggr
 
 Check only specific aggregate
 

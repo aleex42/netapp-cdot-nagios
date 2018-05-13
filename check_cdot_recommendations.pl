@@ -72,53 +72,59 @@ while(defined( $next )){
     $iterator->child_add_string( "max-records", 100 );
     my $output = $s->invoke_elem( $iterator );
 
-    if ($output->results_errno != 0) {
-        my $r = $output->results_reason();
-        print "UNKNOWN: $r\n";
-        exit 3;
-    }
-
+	if ($output->results_errno != 0) {
+	    my $r = $output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
+	
     my $volumes = $output->child_get( "attributes-list" );
-    my @result = $volumes->children_get();
 
-    foreach my $vol (@result) {
+    if ($volumes) {
 
-        my $snap_info = $vol->child_get( "volume-snapshot-attributes" );
-        my $policy = $snap_info->child_get_string( "snapshot-policy" );
-        my $vol_info = $vol->child_get( "volume-id-attributes" );
-        my $vol_name = $vol_info->child_get_string( "name" );
+    	my @result = $volumes->children_get();
+    	
+    	foreach my $vol (@result) {
+            my $snap_info = $vol->child_get( "volume-snapshot-attributes" );
+            my $policy = $snap_info->child_get_string( "snapshot-policy" );
+            my $vol_info = $vol->child_get( "volume-id-attributes" );
+            my $vol_name = $vol_info->child_get_string( "name" );
+  
+            my $vol_type = $vol_info->child_get_string("type");
 
-        if ($policy) {
-            if ($policy eq "default") {
-                push( @snap_policy, $vol_name );
-            }
-        }
-
-        my $vol_type = $vol_info->child_get_string( "type" );
-
-        my $vol_state = $vol->child_get( "volume-state-attributes" );
-        if ($vol_state) {
-
-            my $state = $vol_state->child_get_string( "state" );
-
-            if ($state && ($state eq "online")) {
-
-                unless (($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp") || ($vol_name =~ m/^temp__/) || ($vol_name =~ m/^CC_snapprotect_SP/)) {
-
-                    my $space = $vol->child_get( "volume-space-attributes" );
-                    my $qos = $vol->child_get( "volume-qos-attributes" );
-                    my $guarantee = $space->child_get_string( "space-guarantee" );
-
-                    unless ($qos) {
-                        push( @no_qos, $vol_name );
-                    }
-
-                    unless ($guarantee eq "none") {
-                        push( @no_guarantee, $vol_name );
+            unless($vol_type eq "dp"){
+ 
+                if ($policy) {
+                    if ($policy eq "default") {
+                        push(@snap_policy, $vol_name);
                     }
                 }
             }
-        }
+    	
+    	    my $vol_state = $vol->child_get( "volume-state-attributes" );
+    	    if ($vol_state) {
+    	
+    	        my $state = $vol_state->child_get_string( "state" );
+    	
+    	        if ($state && ($state eq "online")) {
+    	
+    	            unless (($vol_name eq "vol0") || ($vol_name =~ m/_root$/) || ($vol_type eq "dp") || ($vol_name =~ m/^temp__/) || ($vol_name =~ m/^CC_snapprotect_SP/)){
+    	
+    	                my $space = $vol->child_get( "volume-space-attributes" );
+    	                my $qos = $vol->child_get( "volume-qos-attributes" );
+    	                my $guarantee = $space->child_get_string( "space-guarantee" );
+    	
+    	                unless ($qos) {
+    	                    push(@no_qos, $vol_name);
+    	                }
+    	
+    	                unless ($guarantee eq "none") {
+    	                    push(@no_guarantee, $vol_name);
+    	                }
+    	            }
+    	        }
+    	    }
+    	}
     }
     $next = $output->child_get_string( "next-tag" );
 }
@@ -207,45 +213,67 @@ my $policy_count = @snap_policy;
 
 if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0) || ($policy_count != 0)) {
 
-    print "WARNING: Not all recommendations are applied:\n";
+    print "WARNING: Not all recommendations are applied\n";
 
     if ($qos_count != 0) {
-        print "Vol without QOS:\n";
+        print "WARNING - volumes without QOS:\n";
         foreach(@no_qos) {
-            print "-> ".$_."\n";
+            print "-> " . $_ . "\n";
         }
         print "\n";
+    } else {
+        print "OK - no volumes without QOS\n"
     }
 
     if ($guarantee_count != 0) {
-        print "Vol with wrong space-guarantee:\n";
+        print "WARNING - volumes with wrong space-guarantee:\n";
         foreach(@no_guarantee) {
-            print "-> ".$_."\n";
+            print "-> " . $_ . "\n";
         }
         print "\n";
+    } else {
+        print "OK - no volumes with wrong space-guarantee\n"
     }
 
-    if ($schedule_count != 0) {
-        print "SnapMirror without schedule:\n";
+if ($schedule_count != 0) {
+        print "WARNING - snapMirror without schedule:\n";
         foreach(@no_schedule) {
-            print "-> ".$_."\n";
+            print "-> " . $_ . "\n";
         }
+        print "\n";
+    } else {
+        print "OK - no snapmirrors without schedule\n"
     }
+    
     if ($failover_count != 0) {
-        print "LIFs without failover-groups:\n";
+        print "WARNING - LIFs without failover-groups:\n";
         foreach(@no_failover) {
-            print "-> ".$_."\n";
+            print "-> " . $_ . "\n";
         }
+        print "\n";
+    } else {
+        print "OK - no LIFs without failover-groups\n"
     }
+
     if ($policy_count != 0) {
-        print "Volumes with default snapshot policy:\n";
+        print "WARNING - volumes with default snapshot policy (*_root\$,test excluded):\n";
         foreach(@snap_policy) {
-            print "-> ".$_."\n";
+            print "-> " . $_ . "\n";
         }
+        print "\n";
+    } else {
+        print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n"
     }
+
     exit 1;
 } else {
     print "OK - All recommendations are applied\n";
+    print "OK - no volumes withiout QOS\n";
+    print "OK - no volumes with wrong space-guarantee\n";
+    print "OK - no snapmirrors without schedule\n";
+    print "OK - no LIFs without failover-groups\n";
+    print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n";
+
     exit 0;
 }
 

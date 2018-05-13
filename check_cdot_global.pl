@@ -2,7 +2,7 @@
 
 # nagios: -epn
 # --
-# check_cdot_global - Check powersupplys, fans, nvram status, temp or global health
+# check_cdot_global - Check powersupplies, fans, nvram status, temp or global health
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
 # This software comes with ABSOLUTELY NO WARRANTY. For details, see
@@ -16,14 +16,17 @@ use warnings;
 use lib "/usr/lib/netapp-manageability-sdk/lib/perl/NetApp";
 use NaServer;
 use NaElement;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
+
+# ignore warning for experimental 'given'
+no if ($] >= 5.018), 'warnings' => 'experimental';
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'plugin=s'   => \my $Plugin,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'H|hostname=s' => \my $Hostname,
+    'u|username=s' => \my $Username,
+    'p|password=s' => \my $Password,
+    'plugin=s'     => \my $Plugin,
+    'h|help'       => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
@@ -164,15 +167,14 @@ while(defined( $next )){
 given ($Plugin) {
     when("power") {
         if ($sum_failed_power) {
-            print "CRITICAL: $sum_failed_power failed power supply(s): $failed_node\n";
+            print "CRITICAL: $sum_failed_power failed power supplie(s): $failed_node\n";
             exit 2;
         } else {
-            print "OK: No failed power supplys\n";
+            print "OK: No failed power supplies\n";
             exit 0;
         }
     }
     when("fan") {
-
         if ($sum_failed_fan) {
             print "CRITICAL: $sum_failed_fan failed fan(s): $failed_node\n";
             exit 2;
@@ -216,17 +218,17 @@ __END__
 
 =head1 NAME
 
-check_cdot_global - Checks health status ( powersupplys, fans, ... )
+check_cdot_global.pl - Checks health status ( powersupplies, fans, ... )
 
 =head1 SYNOPSIS
 
-check_cdot_global.pl --hostname HOSTNAME --username USERNAME \
-           --password PASSWORD --plugin PLUGIN_NAME
+check_cdot_global.pl -H HOSTNAME -u USERNAME \
+           -p PASSWORD --plugin PLUGIN
 
 =head1 DESCRIPTION
 
 Checks Health Status of:
-  * Power Supplys
+  * Power Supplies
   * Fans
   * NvRam status
   * Temperatuter
@@ -236,15 +238,15 @@ Checks Health Status of:
 
 =over 4
 
-=item --hostname FQDN
+=item -H | --hostname FQDN
 
 The Hostname of the NetApp to check
 
-=item --username USERNAME
+=item -u | --username USERNAME
 
 The Login Username of the NetApp to check
 
-=item --password PASSWORD
+=item -p | --password PASSWORD
 
 The Login Password of the NetApp to check
 
