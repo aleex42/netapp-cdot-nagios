@@ -76,94 +76,108 @@ my %failed_names;
 my @excluded_volumes;
 
 while(defined($next)){
-	unless($next eq ""){
-		$tag_elem->set_content($next);    
-	}
+    unless($next eq ""){
+        $tag_elem->set_content($next);    
+    }
 
-	$snap_iterator->child_add_string("max-records", 100);
-	my $snap_output = $s->invoke_elem($snap_iterator);
+    $snap_iterator->child_add_string("max-records", 100);
+    my $snap_output = $s->invoke_elem($snap_iterator);
 
-	if ($snap_output->results_errno != 0) {
-		my $r = $snap_output->results_reason();
-		print "UNKNOWN: $r\n";
-		exit 3;
-	}
+    if ($snap_output->results_errno != 0) {
+        my $r = $snap_output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
 
-	my $num_records = $snap_output->child_get_string("num-records");
+    my $num_records = $snap_output->child_get_string("num-records");
 
-	if($num_records eq 0){
+    if($num_records eq 0){
         last;
-	}
+    }
 
-	my @snapmirrors = $snap_output->child_get("attributes-list")->children_get();
+    my @snapmirrors = $snap_output->child_get("attributes-list")->children_get();
 
-	foreach my $snap (@snapmirrors){
+    foreach my $snap (@snapmirrors){
 
-		my $status = $snap->child_get_string("relationship-status");
-		my $healthy = $snap->child_get_string("is-healthy");
-		my $lag = $snap->child_get_string("lag-time");
-		my $dest_vol = $snap->child_get_string("destination-volume");
-		my $current_transfer = $snap->child_get_string("current-transfer-type");
-                if ($verbose) {
-                   print "[DEBUG] dest_vol=$dest_vol,\t status=$status,\t healthy=$healthy,\t lag=$lag\n";
+        my $status = $snap->child_get_string("relationship-status");
+        my $healthy = $snap->child_get_string("is-healthy");
+        my $lag = $snap->child_get_string("lag-time");
+        my $dest_vol = $snap->child_get_string("destination-volume");
+        my $source_vol = $snap->child_get_string("source-volume");
+        my $current_transfer = $snap->child_get_string("current-transfer-type");
+        if ($verbose) {
+            print "[DEBUG] dest_vol=$dest_vol,\t status=$status,\t healthy=$healthy,\t lag=$lag\n";
+        }
+        if($dest_vol){
+            if (exists $Excludelist{$dest_vol}) {
+                push(@excluded_volumes,$dest_vol."\n");
+                next;
+            }
+            if ($regexp and $excludeliststr) {
+                if ($dest_vol =~ m/$excludeliststr/) {
+                    push(@excluded_volumes,$dest_vol."\n");
+                    next;
                 }
-                if (exists $Excludelist{$dest_vol}) {
-                   push(@excluded_volumes,$dest_vol."\n");
-                   next;
+            }
+        }
+        unless($healthy eq "true"){
+            if ($verbose) {
+                print "[DEBUG] ".Dumper($snap);
+            }
+            if(! $current_transfer){
+                if($dest_vol){
+                    $failed_names{$dest_vol} = [ $healthy, $lag ];
+                } elsif($source_vol){
+                    $failed_names{$source_vol} = [ $healthy, $lag ];
                 }
-                if ($regexp and $excludeliststr) {
-                   if ($dest_vol =~ m/$excludeliststr/) {
-                     push(@excluded_volumes,$dest_vol."\n");
-                     next;
-                   }
-                }
-		if($healthy eq "false"){
-                   if ($verbose) {
-                      print "[DEBUG] ".Dumper($snap);
-                   }
-                   if(! $current_transfer){
-    			$failed_names{$dest_vol} = [ $healthy, $lag ];
-    			$snapmirror_failed++;
-                   } elsif (($status eq "transferring") || ($status eq "finalizing")){
-    			$snapmirror_ok++;
-    		   }
-                } else {
-                   $snapmirror_ok++;
-                }
+                $snapmirror_failed++;
+            } elsif (($status eq "transferring") || ($status eq "finalizing")){
+                $snapmirror_ok++;
+            }
+        } else {
+            $snapmirror_ok++;
+        }
 
-                if(defined($lag) && ($lag >= $LagOpt)){
-                    if ($verbose) {
-                      print "[DEBUG] ".Dumper($snap);
-                    }
-                    unless(($failed_names{$dest_vol}) || ($status eq "transferring") || ($status eq "finalizing")){
-                        $failed_names{$dest_vol} = [ $healthy, $lag ];
-                        $snapmirror_failed++;
-                    }
+        if(defined($lag) && ($lag >= $LagOpt)){
+            if ($verbose) {
+                print "[DEBUG] ".Dumper($snap);
+            }
+            if($dest_vol){
+                unless(($failed_names{$dest_vol}) || ($status eq "transferring") || ($status eq "finalizing")){
+                    $failed_names{$dest_vol} = [ $healthy, $lag ];
+                    $snapmirror_failed++;
                 }
+            } elsif($source_vol){
+                unless(($failed_names{$source_vol}) || ($status eq "transferring") || ($status eq "finalizing")){
+                    $failed_names{$source_vol} = [ $healthy, $lag ];
+                    $snapmirror_failed++;
+                }
+            }
+        }
 
-	}
-	$next = $snap_output->child_get_string("next-tag");
+    }
+    $next = $snap_output->child_get_string("next-tag");
 }
 
 
 if ($snapmirror_failed) {
-	print "CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok\n";
-	print "Failing snapmirror(s):\n";
-	printf ("%-*s%*s%*s\n", 50, "Name", 10, "Healthy", 10, "Delay");
-	for my $vol ( keys %failed_names ) {
-		my $health_lag = $failed_names{$vol};
-		my @health_lag_value = @{ $health_lag };
-		$health_lag_value[1] = "--- " unless $health_lag_value[1];
-		printf ("%-*s%*s%*s\n", 50, $vol, 10, $health_lag_value[0], 10, $health_lag_value[1] . "s");
-	}
-        print "\nExcluded volume(s):\n";
-        print "@excluded_volumes\n";
-	exit 2;
+    print "CRITICAL: $snapmirror_failed snapmirror(s) failed - $snapmirror_ok snapmirror(s) ok\n";
+    print "Failing snapmirror(s):\n";
+    printf ("%-*s%*s%*s\n", 50, "Name", 10, "Healthy", 10, "Delay");
+    for my $vol ( keys %failed_names ) {
+        my $health_lag = $failed_names{$vol};
+        my @health_lag_value = @{ $health_lag };
+        $health_lag_value[1] = "--- " unless $health_lag_value[1];
+        printf ("%-*s%*s%*s\n", 50, $vol, 10, $health_lag_value[0], 10, $health_lag_value[1] . "s");
+    }
+    print "\nExcluded volume(s):\n";
+    print "@excluded_volumes\n";
+    exit 2;
 } else {
-	print "OK: $snapmirror_ok snapmirror(s) ok\n";
-        print "\nExcluded volume(s):\n";
-        print "@excluded_volumes\n";
-	exit 0;
+    print "OK: $snapmirror_ok snapmirror(s) ok\n";
+    print "\nExcluded volume(s):\n";
+    print "@excluded_volumes\n";
+    exit 0;
 }
 
 __END__
