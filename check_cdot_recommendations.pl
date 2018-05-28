@@ -187,22 +187,25 @@ while(defined($lif_next)){
 	    print "UNKNOWN: $r\n";
 	    exit 3;
 	}
-	
-	my $lifs = $lif_output->child_get("attributes-list");
-	my @lif_result = $lifs->children_get();
-	
-	foreach my $lif (@lif_result){
-	
-	    my $lif_name = $lif->child_get_string("interface-name");
-	    my $failover_group = $lif->child_get_string("failover-group");
-	    my $role = $lif->child_get_string("role");
-	
-		if(($failover_group) && ($failover_group eq "system-defined")){
-	        if(($role eq "data") || ($role eq "cluster-mgmt")){
-	            push(@no_failover, $lif_name);
-	        }
-	    }
-	}
+
+    unless($lif_output->child_get_int("num-records") eq "0"){
+
+        my $lifs = $lif_output->child_get("attributes-list");
+        my @lif_result = $lifs->children_get();
+
+        foreach my $lif (@lif_result){
+
+            my $lif_name = $lif->child_get_string("interface-name");
+            my $failover_group = $lif->child_get_string("failover-group");
+            my $role = $lif->child_get_string("role");
+
+            if(($failover_group) && ($failover_group eq "system-defined")){
+                if(($role eq "data") || ($role eq "cluster-mgmt")){
+                    push(@no_failover, $lif_name);
+                }
+            }
+        }
+    }
     $lif_next = $lif_output->child_get_string("next-tag");
 }
 

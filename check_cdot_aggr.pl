@@ -52,7 +52,7 @@ my $crit_msg;
 my $warn_msg;
 my $ok_msg;
 
-my $s = NaServer->new( $Hostname, 1, 3 );
+my $s = NaServer->new( $Hostname, 1, 21 );
 $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
