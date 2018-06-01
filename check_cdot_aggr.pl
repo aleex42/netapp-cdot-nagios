@@ -27,22 +27,22 @@ GetOptions(
     'c|critical=i' => \my $Critical,
     'A|aggr=s'     => \my $Aggr,
     'P|perf'       => \my $perf,
-    'exclude=s'  => \my @excludelistarray,
-    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'exclude=s'    => \my @excludelistarray,
+    'h|help'       => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 my %Excludelist;
-@Excludelist{@excludelistarray}=();
+@Excludelist{@excludelistarray} = ();
 
 sub Error {
-    print "$0: " . $_[0] . "\n";
+    print "$0: ".$_[0]."\n";
     exit 2;
 }
-Error('Option --hostname needed!') unless $Hostname;
-Error('Option --username needed!') unless $Username;
-Error('Option --password needed!') unless $Password;
-Error('Option --warning needed!')  unless $Warning;
-Error('Option --critical needed!') unless $Critical;
+Error( 'Option --hostname needed!' ) unless $Hostname;
+Error( 'Option --username needed!' ) unless $Username;
+Error( 'Option --password needed!' ) unless $Password;
+Error( 'Option --warning needed!' ) unless $Warning;
+Error( 'Option --critical needed!' ) unless $Critical;
 
 my $perfmsg;
 my $critical = 0;
@@ -57,40 +57,40 @@ $s->set_transport_type("HTTPS");
 $s->set_style("LOGIN");
 $s->set_admin_user( $Username, $Password );
 
-my $iterator = NaElement->new("aggr-get-iter");
-my $tag_elem = NaElement->new("tag");
-$iterator->child_add($tag_elem);
+my $iterator = NaElement->new( "aggr-get-iter" );
+my $tag_elem = NaElement->new( "tag" );
+$iterator->child_add( $tag_elem );
 
-my $xi = new NaElement('desired-attributes');
-$iterator->child_add($xi);
-my $xi1 = new NaElement('aggr-attributes');
-$xi->child_add($xi1);
-$xi1->child_add_string('aggregate-name','<aggregate-name>');
-my $xi2 = new NaElement('aggr-space-attributes');
-$xi1->child_add($xi2);
-$xi2->child_add_string('percent-used-capacity','<percent-used-capacity>');
-$xi2->child_add_string('size-available','<size-available>');
-$xi2->child_add_string('size-total','<size-total>');
-$xi2->child_add_string('size-used','<size-used>');
-my $xi3 = new NaElement('query');
-$iterator->child_add($xi3);
-my $xi4 = new NaElement('aggr-attributes');
-$xi3->child_add($xi4);
-if($Aggr){
-    $xi4->child_add_string('aggregate-name',$Aggr);
+my $xi = new NaElement( 'desired-attributes' );
+$iterator->child_add( $xi );
+my $xi1 = new NaElement( 'aggr-attributes' );
+$xi->child_add( $xi1 );
+$xi1->child_add_string( 'aggregate-name', '<aggregate-name>' );
+my $xi2 = new NaElement( 'aggr-space-attributes' );
+$xi1->child_add( $xi2 );
+$xi2->child_add_string( 'percent-used-capacity', '<percent-used-capacity>' );
+$xi2->child_add_string( 'size-available', '<size-available>' );
+$xi2->child_add_string( 'size-total', '<size-total>' );
+$xi2->child_add_string( 'size-used', '<size-used>' );
+my $xi3 = new NaElement( 'query' );
+$iterator->child_add( $xi3 );
+my $xi4 = new NaElement( 'aggr-attributes' );
+$xi3->child_add( $xi4 );
+if ($Aggr) {
+    $xi4->child_add_string( 'aggregate-name', $Aggr );
 }
-my $xi5 = new NaElement('query');
-$iterator->child_add($xi5);
+my $xi5 = new NaElement( 'query' );
+$iterator->child_add( $xi5 );
 
 my $next = "";
 
-while(defined($next)){
-    unless($next eq ""){
-        $tag_elem->set_content($next);    
+while(defined( $next )){
+    unless ($next eq "") {
+        $tag_elem->set_content( $next );
     }
 
-    $iterator->child_add_string("max-records", 100);
-    my $output = $s->invoke_elem($iterator);
+    $iterator->child_add_string( "max-records", 100 );
+    my $output = $s->invoke_elem( $iterator );
 
     if ($output->results_errno != 0) {
         my $r = $output->results_reason();
@@ -98,35 +98,35 @@ while(defined($next)){
         exit 3;
     }
 
-    my $aggrs = $output->child_get("attributes-list");
+    my $aggrs = $output->child_get( "attributes-list" );
     my @result = $aggrs->children_get();
 
-    foreach my $aggr (@result){
+    foreach my $aggr (@result) {
 
-        my $aggr_name = $aggr->child_get_string("aggregate-name");
+        my $aggr_name = $aggr->child_get_string( "aggregate-name" );
 
-    	# exclude root aggregates
-        unless($aggr_name =~ m/^aggr0_/){
+        # exclude root aggregates
+        unless($aggr_name =~ m/^aggr0_/) {
 
             next if exists $Excludelist{$aggr_name};
 
-            my $space = $aggr->child_get("aggr-space-attributes");
-	        my $bytesused = $space->child_get_int("size-used");
-	        my $bytesavail = $space->child_get_int("size-available");
-	        my $bytestotal = $space->child_get_int("size-total");
-            my $percent = $space->child_get_int("percent-used-capacity");
+            my $space = $aggr->child_get( "aggr-space-attributes" );
+            my $bytesused = $space->child_get_int( "size-used" );
+            my $bytesavail = $space->child_get_int( "size-available" );
+            my $bytestotal = $space->child_get_int( "size-total" );
+            my $percent = $space->child_get_int( "percent-used-capacity" );
 
-            if($percent >= $Critical){
+            if($percent >= $Critical) {
 
                 $critical++;
                 
-                if($crit_msg){
+                if($crit_msg) {
                     $crit_msg .= ", " . $aggr_name . " (" . $percent . "%)";
                 } else {
                     $crit_msg .= $aggr_name . " (" . $percent . "%)";
                 }
 
-            } elsif ($percent >= $Warning){
+            } elsif ($percent >= $Warning) {
 
                 $warning++;
 
@@ -139,7 +139,7 @@ while(defined($next)){
                 
                 $ok++;
 
-                if ($ok_msg){
+                if ($ok_msg) {
                     $ok_msg .= ", " . $aggr_name . " (" . $percent . "%)";
                 } else {
                     $ok_msg .= $aggr_name . " (" . $percent . "%)";
@@ -156,35 +156,35 @@ while(defined($next)){
         }
     }
 
-    $next = $output->child_get_string("next-tag");
+    $next = $output->child_get_string( "next-tag" );
 }
 
-if($critical > 0){
+if($critical > 0) {
     print "CRITICAL: $crit_msg\n\n";
-    if($warning >0){
+    if($warning > 0) {
         print "WARNING: $warn_msg\n\n";
     }
-    if($ok >0){
+    if($ok > 0) {
         print "OK: $ok_msg";
     }
     if($perf) {print"|" . $perfmsg;}
     print  "\n";
     exit 2;
-} elsif($warning > 0){
+} elsif($warning > 0) {
     print "WARNING: $warn_msg\n\n";
-    if($ok >0){
+    if($ok > 0) {
         print "OK: $ok_msg";
     }
-    if($perf){print"|" . $perfmsg;}
+    if($perf) {print"|" . $perfmsg;}
     print  "\n";    
     exit 1;
 } else {
-    if($ok >0){
+    if($ok > 0) {
         print "OK: $ok_msg";
     } else {
         print "OK - but no output\n";
     }
-    if($perf){print"|" . $perfmsg;}    
+    if($perf) {print"|" . $perfmsg;}    
     print  "\n";    
     exit 0;
 }

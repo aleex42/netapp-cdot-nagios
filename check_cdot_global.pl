@@ -25,147 +25,147 @@ GetOptions(
     'H|hostname=s' => \my $Hostname,
     'u|username=s' => \my $Username,
     'p|password=s' => \my $Password,
-    'plugin=s'   => \my $Plugin,
-    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
-) or Error("$0: Error in command line arguments\n");
+    'plugin=s'     => \my $Plugin,
+    'h|help'       => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
-    print "$0: " . $_[0] . "\n";
+    print "$0: ".$_[0]."\n";
     exit 2;
 }
-Error('Option --hostname needed!') unless $Hostname;
-Error('Option --username needed!') unless $Username;
-Error('Option --plugin needed!')   unless $Plugin;
+Error( 'Option --hostname needed!' ) unless $Hostname;
+Error( 'Option --username needed!' ) unless $Username;
+Error( 'Option --plugin needed!' ) unless $Plugin;
 
-if (   ( $Plugin ne 'power' )
+if (( $Plugin ne 'power' )
     && ( $Plugin ne 'fan' )
     && ( $Plugin ne 'nvram' )
     && ( $Plugin ne 'temp' )
-    && ( $Plugin ne 'health' ) )
+    && ( $Plugin ne 'health' ))
 {
-	Error("Plugin $Plugin not known - possible Plugins: 'power', 'fan', 'nvram', 'temp', 'health'\n");
+    Error( "Plugin $Plugin not known - possible Plugins: 'power', 'fan', 'nvram', 'temp', 'health'\n" );
 }
 
 my $failed_node;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
-$s->set_transport_type("HTTPS");
-$s->set_style("LOGIN");
+$s->set_transport_type( "HTTPS" );
+$s->set_style( "LOGIN" );
 $s->set_admin_user( $Username, $Password );
 
-my $iterator = NaElement->new("system-node-get-iter");
-my $tag_elem = NaElement->new("tag");
-$iterator->child_add($tag_elem);
+my $iterator = NaElement->new( "system-node-get-iter" );
+my $tag_elem = NaElement->new( "tag" );
+$iterator->child_add( $tag_elem );
 
 my $next = "";
 
 my ($sum_failed_power, $sum_failed_nvram, $sum_failed_temp, $sum_failed_fan, $sum_failed_health) = 0;
 
-while(defined($next)){
-    unless($next eq ""){
-        $tag_elem->set_content($next);    
+while(defined( $next )){
+    unless ($next eq "") {
+        $tag_elem->set_content( $next );
     }
 
-    $iterator->child_add_string("max-records", 100);
-    my $output = $s->invoke_elem($iterator);
+    $iterator->child_add_string( "max-records", 100 );
+    my $output = $s->invoke_elem( $iterator );
 
-	if ($output->results_errno != 0) {
-	    my $r = $output->results_reason();
-	    print "UNKNOWN: $r\n";
-	    exit 3;
-	}
-	
-	my $heads = $output->child_get("attributes-list");
-	my @result = $heads->children_get();
-	
-	given ($Plugin) {
-	    when("power"){
-	        foreach my $head (@result){
-	            my $failed_power_count = $head->child_get_string("env-failed-power-supply-count");
-	            my $node_name = $head->child_get_string("node");
-	            if($failed_power_count){
-	                $sum_failed_power++;
-	
-	                if($failed_node){
-	                    $failed_node .= ", $node_name";
-	                } else {
-	                    $failed_node .= $node_name;
-	                }        
-	            }
-	        }
-	    }
-	
-	    when("fan"){
-	        foreach my $head (@result){
-	            my $failed_fan_count = $head->child_get_string("env-failed-fan-count");
-	            my $node_name = $head->child_get_string("node");
-	
-	            if($failed_fan_count){
-	                $sum_failed_fan++;
-	
-	                if($failed_node){
-	                    $failed_node .= ", $node_name";
-	                } else {
-	                    $failed_node .= $node_name;
-	                }
-	            }
-	        }
-	    }
-	
-	    when("nvram"){
-	        foreach my $head (@result){
-	            my $nvram_status = $head->child_get_string("nvram-battery-status");
-	            my $node_name = $head->child_get_string("node");
-	            if($head->child_get_string("is-node-healthy") eq "true"){
-	                $sum_failed_nvram++ if $nvram_status ne "battery_ok";
-	
-	                if($failed_node){
-	                    $failed_node .= ", $node_name";
-	                } else {
-	                    $failed_node .= $node_name;
-	                }
-	            }
-	        }
-	    }
-	
-	    when("temp"){
-	        foreach my $head (@result){
-	            my $temp_status = $head->child_get_string("env-over-temperature");
-	            my $node_name = $head->child_get_string("node");
-	            if($head->child_get_string("is-node-healthy") eq "true"){
-	                $sum_failed_temp++ if $temp_status ne "false";
-	
-	                if($failed_node){
-	                    $failed_node .= ", $node_name";
-	                } else {
-	                    $failed_node .= $node_name;
-	                }
-	            }
-	        }
-	    }
-	
-	    when("health"){
-	        foreach my $head (@result){
-	
-	            my $health_status = $head->child_get_string("is-node-healthy");
-	            my $node_name = $head->child_get_string("node");
-	            if($health_status ne "true"){
-	                $sum_failed_health++;
-	
-	                if($failed_node){
-	                    $failed_node .= ", $node_name";
-	                } else {
-	                    $failed_node .= $node_name;
-	                }
-	            }
-	        }
-	    }
-	}
-	$next = $output->child_get_string("next-tag");
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
+
+    my $heads = $output->child_get( "attributes-list" );
+    my @result = $heads->children_get();
+
+    given ($Plugin) {
+        when("power") {
+            foreach my $head (@result) {
+                my $failed_power_count = $head->child_get_string( "env-failed-power-supply-count" );
+                my $node_name = $head->child_get_string( "node" );
+                if ($failed_power_count) {
+                    $sum_failed_power++;
+
+                    if ($failed_node) {
+                        $failed_node .= ", $node_name";
+                    } else {
+                        $failed_node .= $node_name;
+                    }
+                }
+            }
+        }
+
+        when("fan") {
+            foreach my $head (@result) {
+                my $failed_fan_count = $head->child_get_string( "env-failed-fan-count" );
+                my $node_name = $head->child_get_string( "node" );
+
+                if ($failed_fan_count) {
+                    $sum_failed_fan++;
+
+                    if ($failed_node) {
+                        $failed_node .= ", $node_name";
+                    } else {
+                        $failed_node .= $node_name;
+                    }
+                }
+            }
+        }
+
+        when("nvram") {
+            foreach my $head (@result) {
+                my $nvram_status = $head->child_get_string( "nvram-battery-status" );
+                my $node_name = $head->child_get_string( "node" );
+                if ($head->child_get_string( "is-node-healthy" ) eq "true") {
+                    $sum_failed_nvram++ if $nvram_status ne "battery_ok";
+
+                    if ($failed_node) {
+                        $failed_node .= ", $node_name";
+                    } else {
+                        $failed_node .= $node_name;
+                    }
+                }
+            }
+        }
+
+        when("temp") {
+            foreach my $head (@result) {
+                my $temp_status = $head->child_get_string( "env-over-temperature" );
+                my $node_name = $head->child_get_string( "node" );
+                if ($head->child_get_string( "is-node-healthy" ) eq "true") {
+                    $sum_failed_temp++ if $temp_status ne "false";
+
+                    if ($failed_node) {
+                        $failed_node .= ", $node_name";
+                    } else {
+                        $failed_node .= $node_name;
+                    }
+                }
+            }
+        }
+
+        when("health") {
+            foreach my $head (@result) {
+
+                my $health_status = $head->child_get_string( "is-node-healthy" );
+                my $node_name = $head->child_get_string( "node" );
+                if ($health_status ne "true") {
+                    $sum_failed_health++;
+
+                    if ($failed_node) {
+                        $failed_node .= ", $node_name";
+                    } else {
+                        $failed_node .= $node_name;
+                    }
+                }
+            }
+        }
+    }
+    $next = $output->child_get_string( "next-tag" );
 }
 
 given ($Plugin) {
-    when("power"){
+    when("power") {
         if ($sum_failed_power) {
             print "CRITICAL: $sum_failed_power failed power supplie(s): $failed_node\n";
             exit 2;
@@ -174,7 +174,7 @@ given ($Plugin) {
             exit 0;
         }
     }
-    when("fan"){
+    when("fan") {
         if ($sum_failed_fan) {
             print "CRITICAL: $sum_failed_fan failed fan(s): $failed_node\n";
             exit 2;
@@ -183,7 +183,7 @@ given ($Plugin) {
             exit 0;
         }
     }
-    when("nvram"){
+    when("nvram") {
         if ($sum_failed_nvram) {
             print "CRITICAL: $sum_failed_nvram failed nvram(s): $failed_node\n";
             exit 2;
@@ -192,17 +192,17 @@ given ($Plugin) {
             exit 0;
         }
     }
-    when("temp"){
+    when("temp") {
         if ($sum_failed_temp) {
             print "CRITICAL: Temperature Overheating: $failed_node\n";
             exit 2;
         } else {
             print "OK: Temperature OK\n";
             exit 0;
-        } 
+        }
     }
-    when("health"){
-	    if ($sum_failed_health){
+    when("health") {
+        if ($sum_failed_health) {
             print "CRITICAL: Health Status Critical: $failed_node\n";
             exit 2;
         } else {
@@ -222,7 +222,7 @@ check_cdot_global.pl - Checks health status ( powersupplies, fans, ... )
 
 =head1 SYNOPSIS
 
-check_cdot_global -H HOSTNAME -u USERNAME \
+check_cdot_global.pl -H HOSTNAME -u USERNAME \
            -p PASSWORD --plugin PLUGIN
 
 =head1 DESCRIPTION

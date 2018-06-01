@@ -23,26 +23,26 @@ my $STARTTIME_HR = Time::HiRes::time();           # time of program start, high 
 my $STARTTIME    = sprintf("%.0f",$STARTTIME_HR); # time of program start
 
 GetOptions(
-    'output-html' => \my $output_html,
-    'H|hostname=s' => \my $Hostname,
-    'u|username=s' => \my $Username,
-    'p|password=s' => \my $Password,
-    'w|size-warning=i'  => \my $SizeWarning,
-    'c|size-critical=i' => \my $SizeCritical,
-    'inode-warning=i'  => \my $InodeWarning,
-    'inode-critical=i' => \my $InodeCritical,
-    'snap-warning=i' => \my $SnapWarning,
-    'snap-critical=i' => \my $SnapCritical,
-    'snap-ignore=s' => \my $SnapIgnore,
-    'P|perf'     => \my $perf,
-    'V|volume=s'   => \my $Volume,
-    'vserver=s'  => \my $Vserver,
-    'exclude=s'	 =>	\my @excludelistarray,
-    'regexp'            => \my $regexp,
-    'perfdatadir=s' => \my $perfdatadir,
+    'output-html'           => \my $output_html,
+    'H|hostname=s'          => \my $Hostname,
+    'u|username=s'          => \my $Username,
+    'p|password=s'          => \my $Password,
+    'w|size-warning=i'      => \my $SizeWarning,
+    'c|size-critical=i'     => \my $SizeCritical,
+    'inode-warning=i'       => \my $InodeWarning,
+    'inode-critical=i'      => \my $InodeCritical,
+    'snap-warning=i'        => \my $SnapWarning,
+    'snap-critical=i'       => \my $SnapCritical,
+    'snap-ignore=s'         => \my $SnapIgnore,
+    'P|perf'                => \my $perf,
+    'V|volume=s'            => \my $Volume,
+    'vserver=s'             => \my $Vserver,
+    'exclude=s'	            =>	\my @excludelistarray,
+    'regexp'                => \my $regexp,
+    'perfdatadir=s'         => \my $perfdatadir,
     'perfdataservicedesc=s' => \my $perfdataservicedesc,
-    'hostdisplay=s' => \my $hostdisplay,
-    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'hostdisplay=s'         => \my $hostdisplay,
+    'h|help'                => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 my %Excludelist;
@@ -50,7 +50,7 @@ my %Excludelist;
 my $excludeliststr = join "|", @excludelistarray;
 
 sub Error {
-    print "$0: " . $_[0] . "\n";
+    print "$0: ".$_[0]."\n";
     exit 2;
 }
 
@@ -71,25 +71,25 @@ sub draw_html_table {
 		$html_table .= "<td style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #acacac;\">".$volume."</td>";
 		foreach my $attr (@columns) {
 			if ($attr eq "space_percent") {
-				if (defined $hrefInfo->{$volume}->{"space_percent_c"}){
+				if (defined $hrefInfo->{$volume}->{"space_percent_c"}) {
 					$html_table .= "<td class=\"state-critical\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #f83838\">".$hrefInfo->{$volume}->{$attr}."</td>";
-				} elsif (defined $hrefInfo->{$volume}->{"space_percent_w"}){
+				} elsif (defined $hrefInfo->{$volume}->{"space_percent_w"}) {
 					$html_table .= "<td class=\"state-warning\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #FFFF00\">".$hrefInfo->{$volume}->{$attr}."</td>";
 				} else {
 					$html_table .= "<td class=\"state-ok\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #33ff00\">".$hrefInfo->{$volume}->{$attr}."</td>";
 				}
 			} elsif ($attr eq "inode_percent") {
-				if (defined $hrefInfo->{$volume}->{"inode_percent_c"}){
+				if (defined $hrefInfo->{$volume}->{"inode_percent_c"}) {
 					$html_table .= "<td class=\"state-critical\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #f83838\">".$hrefInfo->{$volume}->{$attr}."</td>";
-				} elsif (defined $hrefInfo->{$volume}->{"inode_percent_w"}){
+				} elsif (defined $hrefInfo->{$volume}->{"inode_percent_w"}) {
 					$html_table .= "<td class=\"state-warning\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #FFFF00\">".$hrefInfo->{$volume}->{$attr}."</td>";
 				} else {
 					$html_table .= "<td class=\"state-ok\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #33ff00\">".$hrefInfo->{$volume}->{$attr}."</td>";
 				}
 			} elsif ($attr eq "snap_percent") {
-				if (defined $hrefInfo->{$volume}->{"snap_percent_c"}){
+				if (defined $hrefInfo->{$volume}->{"snap_percent_c"}) {
 					$html_table .= "<td class=\"state-critical\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #f83838\">".$hrefInfo->{$volume}->{$attr}."</td>";
-				} elsif (defined $hrefInfo->{$volume}->{"snap_percent_w"}){
+				} elsif (defined $hrefInfo->{$volume}->{"snap_percent_w"}) {
 					$html_table .= "<td class=\"state-warning\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #FFFF00\">".$hrefInfo->{$volume}->{$attr}."</td>";
 				} else {
 					$html_table .= "<td class=\"state-ok\" style=\"text-align: left; padding-left: 4px; padding-right: 6px; background-color: #33ff00\">".$hrefInfo->{$volume}->{$attr}."</td>";
@@ -185,57 +185,57 @@ my $h_warn_crit_info={};
 my $volume_count = 0;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
-$s->set_transport_type("HTTPS");
-$s->set_style("LOGIN");
+$s->set_transport_type( "HTTPS" );
+$s->set_style( "LOGIN" );
 $s->set_admin_user( $Username, $Password );
 
-my $iterator = NaElement->new("volume-get-iter");
-my $tag_elem = NaElement->new("tag");
-$iterator->child_add($tag_elem);
+my $iterator = NaElement->new( "volume-get-iter" );
+my $tag_elem = NaElement->new( "tag" );
+$iterator->child_add( $tag_elem );
 
-my $xi = new NaElement('desired-attributes');
-$iterator->child_add($xi);
-my $xi1 = new NaElement('volume-attributes');
-$xi->child_add($xi1);
-my $xi2 = new NaElement('volume-id-attributes');
-$xi1->child_add($xi2);
-$xi2->child_add_string('name','<name>');
-my $xi3 = new NaElement('volume-space-attributes');
-$xi1->child_add($xi3);
-$xi3->child_add_string('percentage-size-used','<percentage-size-used>');
-$xi3->child_add_string('size-used', '<size-used>');
-$xi3->child_add_string('size-total', '<size-total>');
-$xi3->child_add_string('snapshot-reserve-size', '<snapshot-reserve-size>');
-$xi3->child_add_string('size-used-by-snapshots', '<size-used-by-snapshots>');
-$xi3->child_add_string('percentage-snapshot-reserve-used', '<percentage-snapshot-reserve-used>');
-my $xi13 = new NaElement('volume-inode-attributes');
-$xi1->child_add($xi13);
-$xi13->child_add_string('files-total','<files-total>');
-$xi13->child_add_string('files-used','<files-used>');
-my $xi4 = new NaElement('query');
-$iterator->child_add($xi4);
-my $xi5 = new NaElement('volume-attributes');
-$xi4->child_add($xi5);
-my $xi6 = new NaElement('volume-id-attributes');
-$xi5->child_add($xi6);
+my $xi = new NaElement( "desired-attributes" );
+$iterator->child_add( $xi );
+my $xi1 = new NaElement( "volume-attributes" );
+$xi->child_add( $xi1 );
+my $xi2 = new NaElement( "volume-id-attributes" );
+$xi1->child_add( $xi2 );
+$xi2->child_add_string( "name", "<name>" );
+my $xi3 = new NaElement( "volume-space-attributes" );
+$xi1->child_add( $xi3 );
+$xi3->child_add_string( "percentage-size-used", "<percentage-size-used>" );
+$xi3->child_add_string( "size-used", "<size-used>" );
+$xi3->child_add_string( "size-total", "<size-total>" );
+$xi3->child_add_string( "snapshot-reserve-size", "<snapshot-reserve-size>" );
+$xi3->child_add_string( "size-used-by-snapshots", "<size-used-by-snapshots>" );
+$xi3->child_add_string( "percentage-snapshot-reserve-used", "<percentage-snapshot-reserve-used>" );
+my $xi13 = new NaElement( "volume-inode-attributes" );
+$xi1->child_add( $xi13 );
+$xi13->child_add_string( "files-total", "<files-total>" );
+$xi13->child_add_string( "files-used", "<files-used>" );
+my $xi4 = new NaElement( "query" );
+$iterator->child_add( $xi4 );
+my $xi5 = new NaElement( "volume-attributes" );
+$xi4->child_add( $xi5 );
+my $xi6 = new NaElement( "volume-id-attributes" );
+$xi5->child_add( $xi6 );
 if($Volume){
-    $xi6->child_add_string('name',$Volume);
+    $xi6->child_add_string( "name", $Volume );
 }
 if($Vserver){
-    $xi6->child_add_string('owning-vserver-name',$Vserver);
+    $xi6->child_add_string( "owning-vserver-name", $Vserver );
 }
 
 my $next = "";
 
 my (@crit_msg, @warn_msg, @ok_msg);
 
-while(defined($next)){
-    unless($next eq ""){
-        $tag_elem->set_content($next);    
+while(defined($next)) {
+    unless ($next eq "") {
+        $tag_elem->set_content( $next );    
     }
 
-    $iterator->child_add_string("max-records", 100);
-    my $output = $s->invoke_elem($iterator);
+    $iterator->child_add_string( "max-records", 100 );
+    my $output = $s->invoke_elem( $iterator );
 
 	if ($output->results_errno != 0) {
 	    my $r = $output->results_reason();
@@ -243,41 +243,40 @@ while(defined($next)){
 	    exit 3;
 	}
 	
-	my $volumes = $output->child_get("attributes-list");
+	my $volumes = $output->child_get( "attributes-list" );
 
-	unless($volumes){
-	    print "CRITICAL: no volume matching this name\n";
-	    exit 2;
+	unless ($volumes) {
+	    last;
 	}
 	
 	my @result = $volumes->children_get();
 	my $matching_volumes = @result;
 
-    if($Volume && !$Vserver){
-	    if($matching_volumes > 1){
+    if ($Volume && !$Vserver) {
+	    if ($matching_volumes > 1) {
 	        print "CRITICAL: more than one volume matching this name\n";
 	        exit 2;
 	    }
 	}
 	
-	foreach my $vol (@result){
+	foreach my $vol (@result) {
 
-        my $vol_info = $vol->child_get("volume-id-attributes");
-        my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
-        my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
+        my $vol_info = $vol->child_get( "volume-id-attributes" );
+        my $vserver_name = $vol_info->child_get_string( "owning-vserver-name" );
+        my $vol_name = "$vserver_name/" . $vol_info->child_get_string( "name" );
 
-        if($Volume && $Vserver) {
-            if($vserver_name ne $Vserver) {
+        if ($Volume && $Vserver) {
+            if ($vserver_name ne $Vserver) {
                 next;
             }
         }
 	
-	    my $inode_info = $vol->child_get("volume-inode-attributes");
+	    my $inode_info = $vol->child_get( "volume-inode-attributes" );
 	    
-	    if($inode_info){
+	    if ($inode_info) {
 	
-			my $inode_used = $inode_info->child_get_int("files-used");
-			my $inode_total = $inode_info->child_get_int("files-total");
+			my $inode_used = $inode_info->child_get_int( "files-used" );
+			my $inode_total = $inode_info->child_get_int( "files-total" );
 			
 			my $inode_percent = sprintf("%.3f", $inode_used/$inode_total*100);
 			
@@ -289,14 +288,14 @@ while(defined($next)){
                 }
             }
 	
-			my $vol_space = $vol->child_get("volume-space-attributes");
-			my $percent = $vol_space->child_get_int("percentage-size-used");
-			my $snaptotal = $vol_space->child_get_int("snapshot-reserve-size");
-			my $snapused = $vol_space->child_get_int("size-used-by-snapshots");
-			my $snapusedpct = $vol_space->child_get_int("percentage-snapshot-reserve-used");
+			my $vol_space = $vol->child_get( "volume-space-attributes" );
+			my $percent = $vol_space->child_get_int( "percentage-size-used" );
+			my $snaptotal = $vol_space->child_get_int( "snapshot-reserve-size" );
+			my $snapused = $vol_space->child_get_int( "size-used-by-snapshots" );
+			my $snapusedpct = $vol_space->child_get_int( "percentage-snapshot-reserve-used" );
 		
-			$perfdata{$vol_name}{'byte_used'}=$vol_space->child_get_int("size-used");
-			$perfdata{$vol_name}{'byte_total'}=$vol_space->child_get_int("size-total");
+			$perfdata{$vol_name}{'byte_used'}=$vol_space->child_get_int( "size-used" );
+			$perfdata{$vol_name}{'byte_total'}=$vol_space->child_get_int( "size-total" );
 			$perfdata{$vol_name}{'inode_used'}=$inode_used;
 			$perfdata{$vol_name}{'inode_total'}=$inode_total;
 			$perfdata{$vol_name}{'snap_total'}=$snaptotal;
@@ -305,7 +304,7 @@ while(defined($next)){
             my $space_used = $perfdata{$vol_name}{'byte_used'}/1073741824;
             my $space_total = $perfdata{$vol_name}{'byte_total'}/1073741824;
 
-            if($space_used >1024){
+            if ($space_used > 1024) {
                 $space_used /= 1024;
                 $space_total /= 1024;
                 $space_used = sprintf("%.2f TB", $space_used);
@@ -315,7 +314,7 @@ while(defined($next)){
                 $space_total = sprintf("%.2f GB", $space_total);
             }
 
-			if(($percent>$SizeCritical) || ($inode_percent>$InodeCritical) || (($SnapIgnore eq "false") && ($snapusedpct > $SnapCritical))){
+			if (($percent>$SizeCritical) || ($inode_percent>$InodeCritical) || (($SnapIgnore eq "false") && ($snapusedpct > $SnapCritical))) {
 
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
@@ -323,27 +322,27 @@ while(defined($next)){
 
 				my $crit_msg = "$vol_name (";
 
-				if ($percent>$SizeCritical){
+				if ($percent > $SizeCritical) {
 					$crit_msg .= "Size: $space_used/$space_total, $percent%[>$SizeCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_c'} = 1;
-				} elsif ($percent>$SizeWarning){
+				} elsif ($percent > $SizeWarning) {
 					$crit_msg .= "Size: $space_used/$space_total, $percent%[>$SizeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_w'} = 1;
 				}
 
-				if ($inode_percent>$InodeCritical){
+				if ($inode_percent > $InodeCritical) {
 					$crit_msg .= "Inodes: $inode_percent%[>$InodeCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_c'} = 1;
-				} elsif ($inode_percent>$InodeWarning){
+				} elsif ($inode_percent > $InodeWarning) {
 					$crit_msg .= "Inodes: $inode_percent%[>$InodeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_w'} = 1;
 				}
 
-				if ($snapusedpct > $SnapCritical){
+				if ($snapusedpct > $SnapCritical) {
 
 					$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'snap_percent_c'} = 1;
-				} elsif ($snapusedpct > $SnapWarning){
+				} elsif ($snapusedpct > $SnapWarning) {
 					$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
 				}
@@ -351,22 +350,22 @@ while(defined($next)){
                 chop($crit_msg); chop($crit_msg); $crit_msg .= ")";
                 push (@crit_msg, "$crit_msg" );
 
-			} elsif (($percent>$SizeWarning) || ($inode_percent>$InodeWarning) || (($SnapIgnore eq "false") && ($snapusedpct > $SnapWarning))){
+			} elsif (($percent>$SizeWarning) || ($inode_percent>$InodeWarning) || (($SnapIgnore eq "false") && ($snapusedpct > $SnapWarning))) {
 
 				$h_warn_crit_info->{$vol_name}->{'space_percent'}=$percent;
 				$h_warn_crit_info->{$vol_name}->{'inode_percent'}=$inode_percent;
 				$h_warn_crit_info->{$vol_name}->{'snap_percent'}=$snapusedpct;
 				my $warn_msg = "$vol_name (";
 
-				if ($percent>$SizeWarning){
+				if ($percent > $SizeWarning) {
 					$warn_msg .= "Size: $space_used/$space_total, $percent%[>$SizeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_w'} = 1;
 				}
-				if ($inode_percent>$InodeWarning){
+				if ($inode_percent > $InodeWarning) {
 					$warn_msg .= "Inodes: $inode_percent%[>$InodeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_w'} = 1;
 				}
-				if ($snapusedpct > $SnapWarning){
+				if ($snapusedpct > $SnapWarning) {
 					$warn_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
 				}
@@ -374,7 +373,7 @@ while(defined($next)){
 				push (@warn_msg, "$warn_msg" );
 
 			} else {
-				if ($SnapIgnore eq "true"){
+				if ($SnapIgnore eq "true") {
 					push (@ok_msg, "$vol_name (Size: $space_used/$space_total, $percent%, Inodes: $inode_percent%)" );
 				} else {
 					push (@ok_msg, "$vol_name (Size: $space_used/$space_total, $percent%, Inodes: $inode_percent%, Snapreserve: $snapusedpct%)" );
@@ -384,7 +383,7 @@ while(defined($next)){
 			$volume_count++;
 	    } 
 	}
-	$next = $output->child_get_string("next-tag");
+	$next = $output->child_get_string( "next-tag" );
 }
 
 # Build perf data string for output
@@ -411,11 +410,11 @@ foreach my $vol ( keys(%perfdata) ) {
 $perfdatavolstr =~ s/^\s+//;
 my $perfdataallstr = "$perfdataglobalstr $perfdatavolstr";
 
-if(scalar(@crit_msg) ){
+if (scalar(@crit_msg) ) {
     print "CRITICAL: ";
     print join (" ", @crit_msg, @warn_msg);
     if ($perf) { 
-		if($perfdatadir) {
+		if ($perfdatadir) {
 			perfdata_to_file($STARTTIME, $perfdatadir, $hostdisplay, $perfdataservicedesc, $perfdataallstr);
 			print "|$perfdataglobalstr\n";
 		} else {
@@ -427,35 +426,35 @@ if(scalar(@crit_msg) ){
 	my $strHTML = draw_html_table($h_warn_crit_info);
     print $strHTML if $output_html; 
 	exit 2;
-} elsif(scalar(@warn_msg) ){
+} elsif(scalar(@warn_msg) ) {
     print "WARNING: ";
     print join (" ", @warn_msg);
     if ($perf) {
-                if($perfdatadir) {
-                        perfdata_to_file($STARTTIME, $perfdatadir, $hostdisplay, $perfdataservicedesc, $perfdataallstr);
-                        print "|$perfdataglobalstr\n";
-                } else {
-                        print "|$perfdataallstr\n";
-                }
+        if ($perfdatadir) {
+                perfdata_to_file($STARTTIME, $perfdatadir, $hostdisplay, $perfdataservicedesc, $perfdataallstr);
+                print "|$perfdataglobalstr\n";
         } else {
-                print "|\n";
+                print "|$perfdataallstr\n";
         }
+    } else {
+        print "|\n";
+    }
     my $strHTML = draw_html_table($h_warn_crit_info);
     print $strHTML if $output_html;
 	exit 1;
-} elsif(scalar(@ok_msg) ){
+} elsif(scalar(@ok_msg) ) {
     print "OK: ";
     print join (" ", @ok_msg);
     if ($perf) {
-                if($perfdatadir) {
-                        perfdata_to_file($STARTTIME, $perfdatadir, $hostdisplay, $perfdataservicedesc, $perfdataallstr);
-                        print "|$perfdataglobalstr\n";
-                } else {
-                        print "|$perfdataallstr\n";
-                }
+        if ($perfdatadir) {
+                perfdata_to_file($STARTTIME, $perfdatadir, $hostdisplay, $perfdataservicedesc, $perfdataallstr);
+                print "|$perfdataglobalstr\n";
         } else {
-                print "|\n";
+                print "|$perfdataallstr\n";
         }
+    } else {
+        print "|\n";
+    }
     exit 0;
 } else {
     print "WARNING: no online volume found\n";
@@ -472,7 +471,7 @@ check_cdot_volume - Check Volume Usage
 
 =head1 SYNOPSIS
 
-check_cdot_aggr.pl -H HOSTNAME -u USERNAME -p PASSWORD \
+check_cdot_volume.pl -H HOSTNAME -u USERNAME -p PASSWORD \
            -w PERCENT_WARNING -c PERCENT_CRITICAL \
 	       --snap-warning PERCENT_WARNING \
 	       --snap-critical PERCENT_CRITICAL \
