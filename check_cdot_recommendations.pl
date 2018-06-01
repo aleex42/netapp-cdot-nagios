@@ -92,7 +92,7 @@ while(defined( $next )){
   
             my $vol_type = $vol_info->child_get_string("type");
 
-            unless($vol_type eq "dp"){
+            unless(($vol_type eq "dp") || ($vol_name =~ m/^temp__/)){
  
                 if ($policy) {
                     if ($policy eq "default") {
@@ -181,28 +181,31 @@ while(defined( $lif_next )){
     $lif_iterator->child_add_string( "max-records", 100 );
     my $lif_output = $s->invoke_elem( $lif_iterator );
 
-    if ($lif_output->results_errno != 0) {
-        my $r = $lif_output->results_reason();
-        print "UNKNOWN: $r\n";
-        exit 3;
-    }
+	if ($lif_output->results_errno != 0) {
+	    my $r = $lif_output->results_reason();
+	    print "UNKNOWN: $r\n";
+	    exit 3;
+	}
 
-    my $lifs = $lif_output->child_get( "attributes-list" );
-    my @lif_result = $lifs->children_get();
+    unless($lif_output->child_get_int("num-records") eq "0"){
 
-    foreach my $lif (@lif_result) {
+        my $lifs = $lif_output->child_get("attributes-list");
+        my @lif_result = $lifs->children_get();
 
-        my $lif_name = $lif->child_get_string( "interface-name" );
-        my $failover_group = $lif->child_get_string( "failover-group" );
-        my $role = $lif->child_get_string( "role" );
+        foreach my $lif (@lif_result){
 
-        if (($failover_group) && ($failover_group eq "system-defined")) {
-            if (($role eq "data") || ($role eq "cluster-mgmt")) {
-                push( @no_failover, $lif_name );
+            my $lif_name = $lif->child_get_string("interface-name");
+            my $failover_group = $lif->child_get_string("failover-group");
+            my $role = $lif->child_get_string("role");
+
+            if(($failover_group) && ($failover_group eq "system-defined")){
+                if(($role eq "data") || ($role eq "cluster-mgmt")){
+                    push(@no_failover, $lif_name);
+                }
             }
         }
     }
-    $lif_next = $lif_output->child_get_string( "next-tag" );
+    $lif_next = $lif_output->child_get_string("next-tag");
 }
 
 my $qos_count = @no_qos;
