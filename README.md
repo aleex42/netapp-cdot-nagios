@@ -47,3 +47,9 @@ Alexander Krogloth
 <alexander.krogloth at noris.de> for the noris network AG.
 
 See also the list of [contributors](https://github.com/aleex42/netapp-cdot-nagios/blob/master/CONTRIBUTORS.md) who participated in this project.
+
+# License
+
+This software comes with ABSOLUTELY NO WARRANTY. For details, see
+the enclosed file COPYING for license information (GPL). If you
+did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
