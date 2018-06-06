@@ -205,7 +205,7 @@ Checks the Healthnes of the SnapMirror and wheather every snapshot has a lag low
 
 =item --hostname FQDN
 
-The Hostname of the NetApp to monitor
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item --username USERNAME
 

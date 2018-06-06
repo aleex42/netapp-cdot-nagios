@@ -150,7 +150,7 @@ Checks if all HA-Interconnects and Cluster Links are up
 
 =item --hostname FQDN
 
-The Hostname of the NetApp to monitor
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item --username USERNAME
 

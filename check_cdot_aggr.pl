@@ -214,7 +214,7 @@ if warning or critical Thresholds are reached
 
 =item -H | --hostname FQDN
 
-The Hostname of the NetApp to monitor
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item -u | --username USERNAME
 

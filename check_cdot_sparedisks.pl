@@ -118,7 +118,7 @@ Checks if there are some nonzeroed or not assigned disks
 
 =item --hostname FQDN
 
-The Hostname of the NetApp to monitor
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item --username USERNAME
 

@@ -240,7 +240,7 @@ Checks Health Status of:
 
 =item -H | --hostname FQDN
 
-The Hostname of the NetApp to check
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item -u | --username USERNAME
 
