@@ -1,13 +1,12 @@
-netapp-cdot-nagios
-==================
+# NetApp cDOT Nagios Monitoring Skripts (netapp-cdot-nagios)
 
-About
------
+## About
 
-    Scripts for monitoring NetApp cDOT-Systems via NetApp Perl-API
+Scripts for monitoring NetApp cDOT Clusters via NetApp Manageability SDK (Perl)
 
-Plugins
--------
+For older 7-Mode systems use the [7-Mode Scripts](https://github.com/aleex42/netapp-7mode-nagios)
+
+## Plugins
 
     Currently there are the following checks:
 

@@ -71,6 +71,8 @@ foreach my $component (@components){
 
     my $name = $component->child_get_string("component");
     my $result = $component->child_get_string("result");
+
+print $name . "\n";
    
     unless(grep/$name/, @excludelistarray){
 
