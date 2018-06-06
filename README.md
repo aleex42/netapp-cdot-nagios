@@ -45,3 +45,5 @@ http://wiki.krogloth.de/index.php/NetApp_C-Mode/Monitoring
 Alexander Krogloth
 <git at krogloth.de>
 <alexander.krogloth at noris.de> for the noris network AG.
+
+See also the list of [contributors](https://github.com/aleex42/netapp-cdot-nagios/CONTRIBUTORS.md) who participated in this project.
