@@ -22,6 +22,7 @@ GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
+    'snapshot-reserve=s' => \my $Snapreserve,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error( "$0: Error in command line arguments\n" );
 
@@ -32,6 +33,8 @@ sub Error {
 Error( 'Option --hostname needed!' ) unless $Hostname;
 Error( 'Option --username needed!' ) unless $Username;
 Error( 'Option --password needed!' ) unless $Password;
+
+$Snapreserve = 0 unless $Snapreserve;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
 $s->set_transport_type( "HTTPS" );
@@ -63,6 +66,7 @@ my @no_guarantee;
 my @no_schedule = ();
 my @no_failover;
 my @snap_policy;
+my @wrong_snapreserve;
 
 while(defined( $next )){
     unless ($next eq "") {
@@ -113,7 +117,12 @@ while(defined( $next )){
     	                my $space = $vol->child_get( "volume-space-attributes" );
     	                my $qos = $vol->child_get( "volume-qos-attributes" );
     	                my $guarantee = $space->child_get_string( "space-guarantee" );
-    	
+                        my $percent_snapshot = $space->child_get_string("percentage-snapshot-reserve");
+
+                        unless($percent_snapshot eq $Snapreserve){
+                            push(@wrong_snapreserve, $vol_name);
+                        }
+	
     	                unless ($qos) {
     	                    push(@no_qos, $vol_name);
     	                }
@@ -213,8 +222,9 @@ my $guarantee_count = @no_guarantee;
 my $schedule_count = @no_schedule;
 my $failover_count = @no_failover;
 my $policy_count = @snap_policy;
+my $snapreserve_count = @wrong_snapreserve;
 
-if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0) || ($policy_count != 0)) {
+if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0) || ($policy_count != 0) || ($snapreserve_count != 0)) {
 
     print "WARNING: Not all recommendations are applied\n";
 
@@ -238,7 +248,17 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
         print "OK - no volumes with wrong space-guarantee\n"
     }
 
-if ($schedule_count != 0) {
+    if ($snapreserve_count != 0){
+        print "WARNING - volumes with wrong snapshot reserve percentage:\n";
+        foreach(@wrong_snapreserve){
+            print "-> " . $_ . "\n";
+        } 
+        print "\n";
+    } else {
+        print "OK - no volumes with wrong snapshot reserve percentage\n";
+    }
+
+    if ($schedule_count != 0) {
         print "WARNING - snapMirror without schedule:\n";
         foreach(@no_schedule) {
             print "-> " . $_ . "\n";
@@ -247,7 +267,7 @@ if ($schedule_count != 0) {
     } else {
         print "OK - no snapmirrors without schedule\n"
     }
-    
+
     if ($failover_count != 0) {
         print "WARNING - LIFs without failover-groups:\n";
         foreach(@no_failover) {
@@ -273,6 +293,7 @@ if ($schedule_count != 0) {
     print "OK - All recommendations are applied\n";
     print "OK - no volumes withiout QOS\n";
     print "OK - no volumes with wrong space-guarantee\n";
+    print "OK - no volumes with wrong snapshot reserve percentage\n";
     print "OK - no snapmirrors without schedule\n";
     print "OK - no LIFs without failover-groups\n";
     print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n";
