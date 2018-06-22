@@ -163,12 +163,18 @@ while(defined( $snapmirror_next )){
         my @snapmirror_result = $snapmirrors->children_get();
 
         foreach my $snap (@snapmirror_result) {
+
             my $dest_vol = $snap->child_get_string( "destination-volume" );
             my $schedule = $snap->child_get_string( "schedule" );
 
-            if (($dest_vol) && ($schedule)) {
-                unless (($schedule =~ m/^hourly/) || ($schedule =~ m/daily/) || ($schedule =~ m/^15min$/) || ($dest_vol =~ m/^CC_snapprotect_SP/)) {
-                    push( @no_schedule, $dest_vol );
+            unless($schedule){
+                push( @no_schedule, $dest_vol );
+            } else {
+
+                if ($dest_vol){
+                    unless (($schedule =~ m/^hourly/) || ($schedule =~ m/daily/) || ($schedule =~ m/^15min$/) || ($dest_vol =~ m/^CC_snapprotect_SP/)) {
+                        push( @no_schedule, $dest_vol );
+                    }
                 }
             }
         }
