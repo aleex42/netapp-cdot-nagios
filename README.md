@@ -24,6 +24,7 @@ Currently there are the following checks:
 * check_cdot_metrocluster_config.pl: Metrocluster Configuration
 * check_cdot_metrocluster_state.pl: Metrocluster Global Status
 * check_cdot_multipath.pl: SAS Bus Multipathing
+* check_cdot_nve.pl: NetApp Volume Encryption
 * check_cdot_quota.pl: Quota Usage
 * check_cdot_rebuild.pl: Aggregate RAID Status
 * check_cdot_recommendations.pl: some Best Practises
