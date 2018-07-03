@@ -80,14 +80,17 @@ while(defined($next)) {
 
 	foreach my $vol (@result) {
 
-        my $encrypt = $vol->child_get_string( "encrypt" );
         my $vol_info = $vol->child_get("volume-id-attributes");
         my $vol_name = $vol_info->child_get_string( "name" );
 
-        unless($encrypt eq "true"){
-            push(@unencrypt, $vol_name);
-        }
+        unless(($vol_name =~ m/_root$/) || ($vol_name =~ m/^MDV_CRS_/) || ($vol_name eq "vol0")){
 
+            my $encrypt = $vol->child_get_string( "encrypt" );
+
+            unless($encrypt eq "true"){
+                push(@unencrypt, $vol_name);
+            }
+        }
 	}
 	$next = $output->child_get_string( "next-tag" );
 }
