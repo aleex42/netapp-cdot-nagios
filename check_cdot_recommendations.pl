@@ -241,7 +241,7 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
         }
         print "\n";
     } else {
-        print "OK - no volumes without QOS\n"
+        print "OK - no volumes without QOS\n";
     }
 
     if ($guarantee_count != 0) {
@@ -251,7 +251,7 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
         }
         print "\n";
     } else {
-        print "OK - no volumes with wrong space-guarantee\n"
+        print "OK - no volumes with wrong space-guarantee\n";
     }
 
     if ($snapreserve_count != 0){
@@ -271,7 +271,7 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
         }
         print "\n";
     } else {
-        print "OK - no snapmirrors without schedule\n"
+        print "OK - no snapmirrors without schedule\n";
     }
 
     if ($failover_count != 0) {
@@ -281,7 +281,7 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
         }
         print "\n";
     } else {
-        print "OK - no LIFs without failover-groups\n"
+        print "OK - no LIFs without failover-groups\n";
     }
 
     if ($policy_count != 0) {
@@ -291,7 +291,7 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
         }
         print "\n";
     } else {
-        print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n"
+        print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n";
     }
 
     exit 1;
