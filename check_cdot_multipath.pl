@@ -126,12 +126,16 @@ while(defined( $next )){
 
             my $iom_type = $shelfs{"$stack_id.$shelf"};
 
+            my $new_must_paths;
+
             # Internal disks i.e. A700s have 8 paths
             if($iom_type eq "iom12f"){
-                $must_paths = "8";
+                $new_must_paths = "8";
+            } else {
+                $new_must_paths = $must_paths;
             }
 
-            unless($path_count eq $must_paths){
+            unless($path_count eq $new_must_paths){
                 push @failed_disks, $disk_name;
             }
         }
