@@ -33,6 +33,7 @@ Currently there are the following checks:
 * check_cdot_snapshots.pl: Snapshot Age
 * check_cdot_storage_bridge: Storage Bridge Status
 * check_cdot_sparedisks.pl: Sparedisk Zeroed State and Ownership
+* check_cdot_uptime.pl: Node Uptime
 * check_cdot_volume.pl: Volume Space and I-Node Usage (also supports performance data)
 * check_cisco_nexus_ports.pl: Cisco Nexus Cluster-Switch Port Status
 
