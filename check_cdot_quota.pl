@@ -142,7 +142,7 @@ while(defined($next)){
 my $perfdatastr="";
 foreach my $vol ( keys(%perfdata) ) {
     # DS[1] - Data space used
-    $perfdatastr.=sprintf(" %s_space_used=%dBytes;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
+    $perfdatastr.=sprintf(" %s_space_used=%dB;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
 	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
 	0, $perfdata{$vol}{'byte_total'} );
 }
