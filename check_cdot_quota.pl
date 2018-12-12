@@ -79,7 +79,7 @@ my (@crit_msg, @warn_msg, @ok_msg);
 
 while(defined($next)){
     unless($next eq ""){
-        $tag_elem->set_content($next);    
+        $tag_elem->set_content($next);
     }
     $iterator->child_add_string("max-records", 100);
     my $output = $s->invoke_elem($iterator);
@@ -226,14 +226,6 @@ The Warning threshold for data space usage.
 
 The Critical threshold for data space usage.
 
-=item --files-warning PERCENT_WARNING
-
-The Warning threshold for files used. Defaults to 65% if not given.
-
-=item --inode-critical PERCENT_CRITICAL
-
-The Critical threshold for files used. Defaults to 85% if not given.
-
 =item -V | --volume VOLUME
 
 Optional: The name of the Volume on which quotas should be checked.
@@ -241,11 +233,7 @@ Optional: The name of the Volume on which quotas should be checked.
 =item -t | --target TARGET
 
 Optional: The target of a specific quota / qtree that should be checked.
-To use this option, you **MUST** specify a  volume.  
-
-=item -P --perf
-
-Ouput performance data.
+To use this option, you **MUST** specify a  volume.
 
 =item -help
 
