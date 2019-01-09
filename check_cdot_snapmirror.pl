@@ -99,6 +99,12 @@ while(defined($next)){
 
     foreach my $snap (@snapmirrors){
 
+        my $dest_vserver = $snap->child_get_string("destination-vserver");
+
+        if($dest_vserver =~ m/-mc$/){
+            next;
+        }
+
         my $status = $snap->child_get_string("relationship-status");
         my $healthy = $snap->child_get_string("is-healthy");
         my $lag = $snap->child_get_string("lag-time");

@@ -69,7 +69,7 @@ while(defined( $next )){
         my $uptime = $head->child_get_string("node-uptime");
 
         if($uptime < "1800"){
-            print "CRITICAL: uptime $node_name less than 30 minutes\n";
+            print "CRITICAL: uptime $uptime on node $node_name less than 30 minutes\n";
             exit 2;
         }
     }
