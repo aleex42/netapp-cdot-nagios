@@ -27,8 +27,13 @@ GetOptions(
     'volume=s'   => \my $Volume,
     'vserver=s'	 => \my $Vserver,
     'perf'     => \my $perf,
+    'excludevserver=s'  =>  \my @excludevserverlistarray,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
+
+my %Excludevserverlist;
+@Excludevserverlist{@excludevserverlistarray}=();
+my $excludevserverliststr = join "|", @excludevserverlistarray;
 
 sub Error {
     print "$0: " . $_[0] . "\n";
@@ -59,9 +64,11 @@ $xi->child_add($xi1);
 $xi1->child_add_string('online','<online>');
 $xi1->child_add_string('path','<path>');
 $xi1->child_add_string('size','<size>');
+
 $xi1->child_add_string('size-used','<size-used>');
 $xi1->child_add_string('state','<state>');
 $xi1->child_add_string('volume','<volume>');
+$xi1->child_add_string('vserver','<vserver');
 my $xi2 = new NaElement('query');
 $iterator->child_add($xi2);
 my $xi3 = new NaElement('lun-info');
@@ -101,8 +108,13 @@ while(defined($next)){
 
 		if ($lun_info) {
 			my $lun_path = $lun_info->child_get_string("path");
+            my $vserver = $lun_info->child_get_string("vserver");
 
-			my $space_used = $lun_info->child_get_int("size-used");
+            if ($vserver =~ m/$excludevserverliststr/) {
+                next;
+            }
+	
+            my $space_used = $lun_info->child_get_int("size-used");
 			my $space_total = $lun_info->child_get_int("size");
 			
 			my $space_percent = sprintf ("%.3f", $space_used/$space_total*100);
@@ -211,6 +223,9 @@ Optional: The name of the Volume where the Luns that need to be checked are loca
 =item --vserver VSERVER
 
 Optional: The name of the Vserver where the Luns that need to be checked are located
+
+=item --excludevserver
+Optional: The name of a vserver that has to be excluded from the checks (multiple exclude item for multiple volumes)
 
 =item --perf
 
