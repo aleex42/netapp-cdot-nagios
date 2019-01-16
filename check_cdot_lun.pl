@@ -110,8 +110,10 @@ while(defined($next)){
 			my $lun_path = $lun_info->child_get_string("path");
             my $vserver = $lun_info->child_get_string("vserver");
 
-            if ($vserver =~ m/$excludevserverliststr/) {
-                next;
+            if(@excludevserverlistarray){
+                if ($vserver =~ m/$excludevserverliststr/) {
+                    next;
+                }
             }
 	
             my $space_used = $lun_info->child_get_int("size-used");
