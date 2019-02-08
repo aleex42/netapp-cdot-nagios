@@ -27,6 +27,7 @@ GetOptions(
     'P|perf'     => \my $perf,
     "V|volume=s" => \my $Volume,
     't|target=s'   => \my $Quota,
+    'vserver=s' => \my $Vserver,
     'v|verbose' => \my $verbose,
     'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -72,6 +73,10 @@ if ($Volume) {
 }
 if ($Quota) {
     $quota_info->child_add_string('quota-target', $Quota);
+}
+
+if ($Vserver) {
+    $quota_info->child_add_string('vserver', $Vserver);
 }
 
 my $next = "";
