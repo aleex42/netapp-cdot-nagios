@@ -28,12 +28,17 @@ GetOptions(
     'vserver=s'	 => \my $Vserver,
     'perf'     => \my $perf,
     'excludevserver=s'  =>  \my @excludevserverlistarray,
+    'excludelun=s' => \my @excludelunlistarray,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 my %Excludevserverlist;
 @Excludevserverlist{@excludevserverlistarray}=();
 my $excludevserverliststr = join "|", @excludevserverlistarray;
+
+my %Excludelunlist;
+@Excludelunlist{@excludelunlistarray}=();
+my $excludelunliststr = join "|", @excludelunlistarray;
 
 sub Error {
     print "$0: " . $_[0] . "\n";
@@ -115,6 +120,12 @@ while(defined($next)){
                     next;
                 }
             }
+
+            if(@excludelunlistarray){
+                if ($lun_path =~ m/$excludelunliststr/) {
+                    next;
+                }
+            }
 	
             my $space_used = $lun_info->child_get_int("size-used");
 			my $space_total = $lun_info->child_get_int("size");
@@ -155,20 +166,20 @@ while(defined($next)){
 if($crit_msg){
     print "CRITICAL: $crit_msg\n";
     if($warn_msg){
-        print "WARNING: $warn_msg\n";
+        print "\nWARNING: $warn_msg\n";
     }
     if($ok_msg){
-        print "OK: $ok_msg\n";
+        print "\nOK: $ok_msg\n";
     }
     exit 2;
 } elsif($warn_msg){
-    print "WARNING: $warn_msg\n";
+    print "\nWARNING: $warn_msg\n";
     if($ok_msg){
-        print "OK: $ok_msg\n";
+        print "\nOK: $ok_msg\n";
     }
     exit 1;
 } elsif($ok_msg){
-    print "OK: $ok_msg\n";
+    print "\nOK: $ok_msg\n";
     exit 0;
 } else {
     print "WARNING: no online volume found\n";
