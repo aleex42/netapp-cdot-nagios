@@ -27,12 +27,14 @@ GetOptions(
     'c|critical=i' => \my $Critical,
     'A|aggr=s'     => \my $Aggr,
     'P|perf'       => \my $perf,
-    'exclude=s'    => \my @excludelistarray,
+    'exclude=s'    =>  \my @excludelistarray,
+    'regexp'       => \my $regexp,
     'h|help'       => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 my %Excludelist;
 @Excludelist{@excludelistarray} = ();
+my $excludeliststr = join "|", @excludelistarray;
 
 sub Error {
     print "$0: ".$_[0]."\n";
@@ -44,7 +46,7 @@ Error( 'Option --password needed!' ) unless $Password;
 Error( 'Option --warning needed!' ) unless $Warning;
 Error( 'Option --critical needed!' ) unless $Critical;
 
-my $perfmsg;
+my $perfmsg = '';
 my $critical = 0;
 my $warning = 0;
 my $ok = 0;
@@ -105,10 +107,17 @@ while(defined( $next )){
 
         my $aggr_name = $aggr->child_get_string( "aggregate-name" );
 
+
         # exclude root aggregates
         unless($aggr_name =~ m/^aggr0_/) {
 
             next if exists $Excludelist{$aggr_name};
+
+            if ($regexp and $excludeliststr) {
+                if ($aggr_name =~ m/.$excludeliststr/) {
+                    next;
+                }
+            }            
 
             my $space = $aggr->child_get( "aggr-space-attributes" );
             my $bytesused = $space->child_get_int( "size-used" );
@@ -265,4 +274,5 @@ to see this Documentation
  Stelios Gikas <sgikas at demokrit.de>
  Stefan Grosser <sgr at firstframe.net>
  Stephan Lang <stephan.lang at acp.at>
+
 
