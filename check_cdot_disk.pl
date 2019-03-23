@@ -112,9 +112,11 @@ while(defined( $next )){
                 }
             } else {
                 my $owner = $disk->child_get( "disk-ownership-info" );
+                my $owner_node = $owner->child_get_string("owner-node-name");
+
                 my $diskstate = $owner->child_get_string( "is-failed" );
                 if (( $diskstate eq 'true' ) && ($container ne 'maintenance')) {
-                    push @disk_list, $disk->child_get_string( "disk-name" );
+                    push @disk_list, "$owner_node:" . $disk->child_get_string( "disk-name" );
                     $inventory{'Failed'}++;
                 } else {
                     $inventory{'Aggregate'}++;
