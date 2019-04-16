@@ -107,7 +107,7 @@ while(defined($next)){
         my $reporting = $vol_space->child_get_string("is-space-reporting-logical");
         my $enforcement = $vol_space->child_get_string("is-space-enforcement-logical");
 
-        if(($reporting ne "false") || ($enforcement ne "true")){
+        if(($reporting ne "true") || ($enforcement ne "true")){
             push(@crit_msg, $vol_name);
         }
     }
