@@ -67,6 +67,7 @@ my @no_schedule = ();
 my @no_failover;
 my @snap_policy;
 my @wrong_snapreserve;
+my @wrong_filesysfixed;
 
 while(defined( $next )){
     unless ($next eq "") {
@@ -118,6 +119,12 @@ while(defined( $next )){
     	                my $qos = $vol->child_get( "volume-qos-attributes" );
     	                my $guarantee = $space->child_get_string( "space-guarantee" );
                         my $percent_snapshot = $space->child_get_string("percentage-snapshot-reserve");
+
+                        my $filesysfixed = $space->child_get_string("is-filesys-size-fixed");
+
+                        unless($filesysfixed eq "false"){
+                            push(@wrong_filesysfixed, $vol_name);
+                        }                        
 
                         unless($percent_snapshot eq $Snapreserve){
                             push(@wrong_snapreserve, $vol_name);
@@ -229,8 +236,9 @@ my $schedule_count = @no_schedule;
 my $failover_count = @no_failover;
 my $policy_count = @snap_policy;
 my $snapreserve_count = @wrong_snapreserve;
+my $filesysfixed_count = @wrong_filesysfixed;
 
-if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0) || ($policy_count != 0) || ($snapreserve_count != 0)) {
+if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($failover_count != 0) || ($policy_count != 0) || ($snapreserve_count != 0) || ($filesysfixed_count != 0)) {
 
     print "WARNING: Not all recommendations are applied\n";
 
@@ -293,6 +301,18 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
     } else {
         print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n";
     }
+
+    if ($filesysfixed_count != 0) {
+        print "WARNING - volumes with filesyssize fixed\n";
+        foreach(@wrong_filesysfixed){
+            print "-> " . $_ . "\n";
+        }
+        print "\n";
+    } else {
+        print "OK - no volumes with wrong filesyssize fixed\n";
+    }
+
+
 
     exit 1;
 } else {
