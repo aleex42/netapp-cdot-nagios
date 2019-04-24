@@ -51,12 +51,20 @@ my $xi1 = new NaElement( 'volume-attributes' );
 $xi->child_add( $xi1 );
 my $xi2 = new NaElement( 'volume-id-attributes' );
 $xi1->child_add( $xi2 );
-my $xi3 = new NaElement( 'volume-space-attributes' );
+$xi2->child_add_string("name", "<name>");
+$xi2->child_add_string("type", "<type>");
+
+my $xi3 = new NaElement( "volume-space-attributes" );
 $xi1->child_add( $xi3 );
+$xi3->child_add_string( "is-filesys-size-fixed", "<is-filesys-size-fixed>" );
+$xi3->child_add_string( "percentage-snapshot-reserve", "<percentage-snapshot-reserve>" );
+$xi3->child_add_string( "space-guarantee", "<space-guarantee>" );
+
 my $xi13 = new NaElement( 'volume-qos-attributes' );
 $xi1->child_add( $xi13 );
 my $xi14 = new NaElement( 'volume-state-attributes' );
 $xi1->child_add( $xi14 );
+$xi14->child_add_string( "state", "<state>");
 my $xi4 = new NaElement( 'volume-snapshot-attributes' );
 $xi1->child_add( $xi4 );
 
@@ -74,7 +82,7 @@ while(defined( $next )){
         $tag_elem->set_content( $next );
     }
 
-    $iterator->child_add_string( "max-records", 100 );
+    $iterator->child_add_string( "max-records", 400 );
     my $output = $s->invoke_elem( $iterator );
 
 	if ($output->results_errno != 0) {
@@ -323,6 +331,7 @@ if (($qos_count != 0) || ($guarantee_count != 0) || ($schedule_count != 0) || ($
     print "OK - no snapmirrors without schedule\n";
     print "OK - no LIFs without failover-groups\n";
     print "OK - no volumes with default snapshot policy (*_root\$,test excluded)\n";
+    print "OK - no volumes with filesyssize fixed\n";
 
     exit 0;
 }
