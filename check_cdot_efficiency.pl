@@ -59,10 +59,13 @@ my $xi3 = new NaElement('volume-space-attributes');
 $xi1->child_add($xi3);
 $xi3->child_add_string('is-space-reporting-logical');
 $xi3->child_add_string('is-space-enforcement-logical');
-my $xi4 = new NaElement('query');
-$iterator->child_add($xi4);
-my $xi5 = new NaElement('volume-attributes');
-$xi4->child_add($xi5);
+my $xi4 = new NaElement('volume-state-attributes');
+$xi1->child_add($xi4);
+$xi4->child_add_string('state');
+my $xi5 = new NaElement('query');
+$iterator->child_add($xi5);
+my $xi6 = new NaElement('volume-attributes');
+$xi5->child_add($xi6);
 
 my $next = "";
 
@@ -97,12 +100,16 @@ while(defined($next)){
         my $type = $vol_info->child_get_string("type");
         my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
         my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
-    
+        my $state = $vol->child_get("volume-state-attributes")->child_get_string("state");
+  
         next if $vol_info->child_get_string("name") eq "vol0";
         next if $vol_info->child_get_string("name") =~ m/_root$/;
         next if $type eq "dp";
+        next unless $state eq "online";    
 
         my $vol_space = $vol->child_get("volume-space-attributes");
+
+        #print $vol_name . "\n";
 
         my $reporting = $vol_space->child_get_string("is-space-reporting-logical");
         my $enforcement = $vol_space->child_get_string("is-space-enforcement-logical");
