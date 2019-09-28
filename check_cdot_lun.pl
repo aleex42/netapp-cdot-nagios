@@ -100,9 +100,9 @@ while(defined($next)){
 	}
 
 	my $luns_all = $output->child_get("attributes-list");
+
 	unless($output->child_get_int('num-records') != 0) {
-		print "CRITICAL: no volume matching this name\n"; 
-		exit 2;
+        last;
 	}
 
 	my @result = $luns_all->children_get();
