@@ -62,14 +62,16 @@ if ($output->results_errno != 0) {
     exit 3;
 }
 
-if ($output->child_get_string("num-records") eq "0"){
-    last;
+my $count = 0;
+
+unless ($output->child_get_string("num-records") eq "0"){
+
+    my $heads = $output->child_get( "attributes-list" );
+    my @result = $heads->children_get();
+    
+    $count = scalar @result;
+
 }
-
-my $heads = $output->child_get( "attributes-list" );
-my @result = $heads->children_get();
-
-my $count = scalar @result;
 
 unless($count eq "0"){
     print "CRITICAL: lldp not enabled on $count nodes\n";
