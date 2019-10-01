@@ -18,6 +18,7 @@ Currently there are the following checks:
 * check_cdot_fcp.pl: FC Interface Errors
 * check_cdot_global.pl: Global Cluster Health
 * check_cdot_interfaces.pl: Interface Group Status and Interface Errors
+* check_cdot_lldp.pl: LLDP config
 * check_cdot_lun.pl: Lun Usage
 * check_cdot_metrocluster_aggr.pl: Metrocluster Aggregate Status
 * check_cdot_metrocluster_check.pl: Metrocluster Check
