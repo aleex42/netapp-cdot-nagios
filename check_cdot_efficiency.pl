@@ -99,8 +99,7 @@ while(defined($next)){
         my $vol_info = $vol->child_get("volume-id-attributes");
         my $type = $vol_info->child_get_string("type");
         my $vserver_name = $vol_info->child_get_string("owning-vserver-name");
-        my $name = $vol_info->child_get_string("name");
-        my $vol_name = "$vserver_name/$name";
+        my $vol_name = "$vserver_name/" . $vol_info->child_get_string("name");
         my $state = $vol->child_get("volume-state-attributes")->child_get_string("state");
   
         next if $vol_info->child_get_string("name") eq "vol0";
@@ -110,77 +109,14 @@ while(defined($next)){
 
         my $vol_space = $vol->child_get("volume-space-attributes");
 
+        #print $vol_name . "\n";
+
         my $reporting = $vol_space->child_get_string("is-space-reporting-logical");
         my $enforcement = $vol_space->child_get_string("is-space-enforcement-logical");
 
-        if($reporting ne "true"){
-
-                my $api = new NaElement('volume-modify-iter');
-                my $xi = new NaElement('attributes');
-                $api->child_add($xi);
-            
-                my $xi1 = new NaElement('volume-attributes');
-                $xi->child_add($xi1);
-            
-                my $xi2 = new NaElement('volume-space-attributes');
-                $xi1->child_add($xi2);
-                $xi2->child_add_string('is-space-reporting-logical','true');
-
-                my $xi33 = new NaElement('query');
-                $api->child_add($xi33);
-                
-                my $xi34 = new NaElement('volume-attributes');
-                $xi33->child_add($xi34);
-                
-                my $xi35 = new NaElement('volume-id-attributes');
-                $xi34->child_add($xi35);
-                
-                $xi35->child_add_string('name',$name);
-                $xi35->child_add_string('owning-vserver-name',$vserver_name);
-                
-                my $xi36 = new NaElement('volume-space-attributes');
-                $xi34->child_add($xi36);
-                
-                $xi36->child_add_string('is-space-reporting-logical','false');
-
-                my $out = $s->invoke_elem($api);
+        if(($reporting ne "true") || ($enforcement ne "true")){
+            push(@crit_msg, $vol_name);
         }
-
-        if($enforcement ne "true"){
-
-                my $api = new NaElement('volume-modify-iter');
-                my $xi = new NaElement('attributes');
-                $api->child_add($xi);
-            
-                my $xi1 = new NaElement('volume-attributes');
-                $xi->child_add($xi1);
-            
-                my $xi2 = new NaElement('volume-space-attributes');
-                $xi1->child_add($xi2);
-                $xi2->child_add_string('is-space-enforcement-logical','true');
-
-                my $xi33 = new NaElement('query');
-                $api->child_add($xi33);
-                
-                my $xi34 = new NaElement('volume-attributes');
-                $xi33->child_add($xi34);
-                
-                my $xi35 = new NaElement('volume-id-attributes');
-                $xi34->child_add($xi35);
-                
-                $xi35->child_add_string('name',$name);
-                $xi35->child_add_string('owning-vserver-name',$vserver_name);
-
-                my $xi36 = new NaElement('volume-space-attributes');
-                $xi34->child_add($xi36);
-
-                $xi36->child_add_string('is-space-enforcement-logical','false');
-
-                my $out = $s->invoke_elem($api);
-        }
-
-
-
     }
     $next = $output->child_get_string("next-tag");
 }
@@ -196,52 +132,28 @@ if(scalar(@crit_msg) ){
 }
 
 __END__
-
 =encoding utf8
-
 =head1 NAME
-
 check_cdot_effiency - Check Efficiency Settings
-
 =head1 SYNOPSIS
-
 check_cdot_efficiency.pl -H HOSTNAME -u USERNAME -p PASSWORD 
-
 =head1 DESCRIPTION
-
 Checks the Volume Efficiency Settings
-
 =head1 OPTIONS
-
 =over 4
-
 =item -H | --hostname FQDN
-
 The Hostname of the NetApp to monitor
-
 =item -u | --username USERNAME
-
 The Login Username of the NetApp to monitor
-
 =item -p | --password PASSWORD
-
 The Login Password of the NetApp to monitor
-
 =item -help
-
 =item -?
-
 to see this Documentation
-
 =back
-
 =head1 EXIT CODE
-
 3 on Unknown Error
 2 if Critical Threshold has been reached
 0 if everything is ok
-
 =head1 AUTHORS
-
  Alexander Krogloth <git at krogloth.de>
-
