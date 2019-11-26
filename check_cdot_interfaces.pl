@@ -140,7 +140,7 @@ while(defined( $next )){
             my $operational_speed = $lif->child_get_string( "operational-speed" );
 
             if($state eq "up"){
-                unless($name =~ m/^a0/){ 
+                unless(($name =~ m/^a0/) || ($name =~ m/^e0M/)){ 
 
                     if(($admin_speed ne "auto") && ($admin_speed ne $operational_speed)){
                         push( @{$failed_speed{$node}}, $name);
