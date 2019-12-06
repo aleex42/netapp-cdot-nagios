@@ -240,14 +240,14 @@ if($nics) {
 
 if(@failed_ports && @nic_errors) {
     print "CRITICAL: ";
-    print @failed_ports;
+    print join(", ", @failed_ports);
     print " in ifgrp and not up\n";
-    print join(" ", @nic_errors);
+    print join(", ", @nic_errors);
     print " with CRC errors\n";
     exit 2;
 } elsif(@failed_ports){
     print "CRITICAL: ";
-    print @failed_ports;
+    print join(", ", @failed_ports);
     print " in ifgrp and not up\n";
     exit 2;
 } elsif($failed_speed_count ne 0){
