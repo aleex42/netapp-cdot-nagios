@@ -129,7 +129,7 @@ while(defined( $next )){
 }
 
 my $perfdatastr='';
-$perfdatastr = sprintf(" | Aggregate=%dDisks Spare=%dDisks Rebuilding=%dDisks Failed=%dDisks",
+$perfdatastr = sprintf(" | Aggregate=%d Spare=%d Rebuilding=%d Failed=%d",
     $inventory{'Aggregate'}, $inventory{'Spare'}, $inventory{'Rebuilding'}, $inventory{'Failed'}
 ) if ($perf);
 
