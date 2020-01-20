@@ -86,10 +86,9 @@ while(defined($next)){
     }
     
     my $volumes = $output->child_get("attributes-list");
-    
-    unless($volumes){
-        print "CRITICAL: no volume matching this name\n";
-        exit 2;
+
+    unless ($volumes) {
+        last;
     }
     
     my @result = $volumes->children_get();
