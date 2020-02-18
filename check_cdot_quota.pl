@@ -98,9 +98,12 @@ while(defined($next)){
 
     foreach my $getQuota ( $output->child_get("attributes-list")->children_get() ) {
 	# Disk limit is in KB
-	my $diskLimit = $getQuota->child_get_string('disk-limit') * 1024;
-	next if ($diskLimit eq "-" or $diskLimit == 0 );
-	# Also in KB
+	my $diskLimit = $getQuota->child_get_string('disk-limit');
+	
+    next if ($diskLimit eq "-" or $diskLimit == 0 );
+	
+    # Also in KB
+    $diskLimit *= 1024;
 	my $diskUsed = $getQuota->child_get_string('disk-used') * 1024;
 	my $fileLimit = $getQuota->child_get_string('file-limit');
 	my $filesUsed = $getQuota->child_get_string('files-used');
