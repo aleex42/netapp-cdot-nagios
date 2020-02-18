@@ -47,6 +47,11 @@ $s->set_admin_user( $Username, $Password );
 my $mcc_iterator = NaElement->new( "metrocluster-get" );
 my $mcc_response = $s->invoke_elem( $mcc_iterator );
 
+if($mcc_response->results_status ne "passed"){
+    print "ERROR: " . $mcc_response->results_reason . "\n";
+    exit 2;
+}
+
 my $mcc = $mcc_response->child_get( "attributes" );
 my $mcc_info = $mcc->child_get( "metrocluster-info" );
 my $config_state = $mcc_info->child_get_string( "local-configuration-state" );
