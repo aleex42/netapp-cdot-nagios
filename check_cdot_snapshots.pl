@@ -29,6 +29,7 @@ GetOptions(
     'busy'              => \my $busy_check,
     'exclude=s'         => \my @excludelistarray,
     'regexp'            => \my $regexp,
+    'exitcritical'      => \my $exitcritical,
     'v|verbose'         => \my $verbose,
     'help|?'            => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -174,7 +175,12 @@ if (@old_snapshots) {
             print "$snap ($busy_snapshots{$snap})\n";
         }
     }
-    exit 1;
+    if($exitcritical){
+      exit 2;
+    }
+    else{
+      exit 1;
+    }
 }
 else {
     if (!%busy_snapshots){
