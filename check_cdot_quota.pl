@@ -216,10 +216,11 @@ check_cdot_volume - Check Volume Usage
 
 =head1 SYNOPSIS
 
-check_cdot_quota.pl -H HOSTNAME -u USERNAME -p PASSWORD \
-           -w PERCENT_WARNING -c PERCENT_CRITICAL \
-	   --files-warning PERCENT_WARNING \
-           --files-critical PERCENT_CRITICAL [-V VOLUME] [-P]
+check_cdot_quota.pl -H HOSTNAME -u USERNAME -p PASSWORD
+           -w PERCENT_WARNING -c PERCENT_CRITICAL
+           [--files-warning PERCENT_WARNING]
+           [--files-critical PERCENT_CRITICAL]
+           [-t quota_target_path] [-V VOLUME] [-P]
 
 =head1 DESCRIPTION
 
