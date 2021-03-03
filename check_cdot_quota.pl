@@ -138,21 +138,25 @@ while(defined($next)){
 	    # Check files limit as well as space
 	}
 
-	$perfdata{$target}{'byte_used'}=$diskUsed;
-	$perfdata{$target}{'byte_total'}=$diskLimit;
-	$perfdata{$target}{'files_used'}=$filesUsed;
-	$perfdata{$target}{'file_limit'}=$fileLimit;
+        if ($perf) {
+            $perfdata{$target}{'byte_used'}=$diskUsed;
+            $perfdata{$target}{'byte_total'}=$diskLimit;
+            $perfdata{$target}{'files_used'}=$filesUsed;
+            $perfdata{$target}{'file_limit'}=$fileLimit;
+        }
     }
     $next = $output->child_get_string("next-tag");
 }
 
 # Build perf data string for output
 my $perfdatastr="";
-foreach my $vol ( keys(%perfdata) ) {
-    # DS[1] - Data space used
-    $perfdatastr.=sprintf(" %s_space_used=%dB;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
-	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
-	0, $perfdata{$vol}{'byte_total'} );
+if ($perf) {
+    foreach my $vol ( keys(%perfdata) ) {
+        # DS[1] - Data space used
+        $perfdatastr.=sprintf(" %s_space_used=%dB;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
+            $SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
+            0, $perfdata{$vol}{'byte_total'} );
+    }
 }
 
 if(scalar(@crit_msg) ){
@@ -166,7 +170,7 @@ if(scalar(@crit_msg) ){
         print "\nOK: ";
         print join (", ", @ok_msg);
     }
-    print "|$perfdatastr\n";
+    print "|$perfdatastr\n" if ($perf);
     exit 2;
 } elsif(scalar(@warn_msg) ){
     print "WARNING: ";
@@ -175,12 +179,12 @@ if(scalar(@crit_msg) ){
         print "\nOK: ";
         print join (", ", @ok_msg);
     }
-    print "|$perfdatastr\n";
+    print "|$perfdatastr\n" if ($perf);
     exit 1;
 } elsif(scalar(@ok_msg) ){
     print "OK: ";
     print join (", ", @ok_msg);
-    print "|$perfdatastr\n";
+    print "|$perfdatastr\n" if ($perf);
     exit 0;
 } else {
     print "WARNING: no online volume found\n";
