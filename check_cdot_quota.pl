@@ -27,6 +27,7 @@ GetOptions(
     'P|perf'     => \my $perf,
     "V|volume=s" => \my $Volume,
     't|target=s'   => \my $Quota,
+    'vserver=s' => \my $Vserver,
     'v|verbose' => \my $verbose,
     'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
@@ -74,12 +75,16 @@ if ($Quota) {
     $quota_info->child_add_string('quota-target', $Quota);
 }
 
+if ($Vserver) {
+    $quota_info->child_add_string('vserver', $Vserver);
+}
+
 my $next = "";
 my (@crit_msg, @warn_msg, @ok_msg);
 
 while(defined($next)){
     unless($next eq ""){
-        $tag_elem->set_content($next);    
+        $tag_elem->set_content($next);
     }
     $iterator->child_add_string("max-records", 100);
     my $output = $s->invoke_elem($iterator);
@@ -93,9 +98,12 @@ while(defined($next)){
 
     foreach my $getQuota ( $output->child_get("attributes-list")->children_get() ) {
 	# Disk limit is in KB
-	my $diskLimit = $getQuota->child_get_string('disk-limit') * 1024;
-	next if ($diskLimit eq "-" or $diskLimit == 0 );
-	# Also in KB
+	my $diskLimit = $getQuota->child_get_string('disk-limit');
+	
+    next if ($diskLimit eq "-" or $diskLimit == 0 );
+	
+    # Also in KB
+    $diskLimit *= 1024;
 	my $diskUsed = $getQuota->child_get_string('disk-used') * 1024;
 	my $fileLimit = $getQuota->child_get_string('file-limit');
 	my $filesUsed = $getQuota->child_get_string('files-used');
@@ -142,24 +150,36 @@ while(defined($next)){
 my $perfdatastr="";
 foreach my $vol ( keys(%perfdata) ) {
     # DS[1] - Data space used
-    $perfdatastr.=sprintf(" %s_space_used=%dBytes;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
+    $perfdatastr.=sprintf(" %s_space_used=%dB;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
 	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
 	0, $perfdata{$vol}{'byte_total'} );
 }
 
 if(scalar(@crit_msg) ){
     print "CRITICAL: ";
-    print join ("; ", @crit_msg, @warn_msg, @ok_msg);
+    print join (". ", @crit_msg);
+    if(scalar(@warn_msg)){
+        print "\nWARNING: ";
+        print join (", ", @warn_msg);
+    }
+    if(scalar(@ok_msg)){
+        print "\nOK: ";
+        print join (", ", @ok_msg);
+    }
     print "|$perfdatastr\n";
     exit 2;
 } elsif(scalar(@warn_msg) ){
     print "WARNING: ";
-    print join ("; ", @crit_msg, @warn_msg, @ok_msg);
+    print join ("; ", @warn_msg);
+    if(scalar(@ok_msg)){
+        print "\nOK: ";
+        print join (", ", @ok_msg);
+    }
     print "|$perfdatastr\n";
     exit 1;
 } elsif(scalar(@ok_msg) ){
     print "OK: ";
-    print join ("; ", @crit_msg, @warn_msg, @ok_msg);
+    print join (", ", @ok_msg);
     print "|$perfdatastr\n";
     exit 0;
 } else {
@@ -208,7 +228,7 @@ if warning or critical thresholds are reached
 
 =item -H | --hostname FQDN
 
-The Hostname of the NetApp to monitor
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item -u | --username USERNAME
 
@@ -226,14 +246,6 @@ The Warning threshold for data space usage.
 
 The Critical threshold for data space usage.
 
-=item --files-warning PERCENT_WARNING
-
-The Warning threshold for files used. Defaults to 65% if not given.
-
-=item --inode-critical PERCENT_CRITICAL
-
-The Critical threshold for files used. Defaults to 85% if not given.
-
 =item -V | --volume VOLUME
 
 Optional: The name of the Volume on which quotas should be checked.
@@ -241,11 +253,7 @@ Optional: The name of the Volume on which quotas should be checked.
 =item -t | --target TARGET
 
 Optional: The target of a specific quota / qtree that should be checked.
-To use this option, you **MUST** specify a  volume.  
-
-=item -P --perf
-
-Ouput performance data.
+To use this option, you **MUST** specify a  volume.
 
 =item -help
 

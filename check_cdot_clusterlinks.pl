@@ -23,25 +23,25 @@ GetOptions(
     'username=s' => \my $Username,
     'password=s' => \my $Password,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
-) or Error("$0: Error in command line arguments\n");
+) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
-    print "$0: " . $_[0] . "\n";
+    print "$0: ".$_[0]."\n";
     exit 2;
 }
-Error('Option --hostname needed!') unless $Hostname;
-Error('Option --username needed!') unless $Username;
-Error('Option --password needed!') unless $Password;
+Error( 'Option --hostname needed!' ) unless $Hostname;
+Error( 'Option --username needed!' ) unless $Username;
+Error( 'Option --password needed!' ) unless $Password;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
-$s->set_transport_type("HTTPS");
-$s->set_style("LOGIN");
+$s->set_transport_type( "HTTPS" );
+$s->set_style( "LOGIN" );
 $s->set_admin_user( $Username, $Password );
 
-my $lif_api = new NaElement('net-port-get-iter');
-$lif_api->child_add_string('max-records','1000000');
+my $lif_api = new NaElement( 'net-port-get-iter' );
+$lif_api->child_add_string( 'max-records', '1000000' );
 
-my $lif_output = $s->invoke_elem($lif_api);
+my $lif_output = $s->invoke_elem( $lif_api );
 
 if ($lif_output->results_errno != 0) {
     my $r = $lif_output->results_reason();
@@ -49,29 +49,29 @@ if ($lif_output->results_errno != 0) {
     exit 3;
 }
 
-my $lifs = $lif_output->child_get("attributes-list");
+my $lifs = $lif_output->child_get( "attributes-list" );
 my @lif_result = $lifs->children_get();
 
 my @failed_ports;
 
-foreach my $lif (@lif_result){
+foreach my $lif (@lif_result) {
 
-    my $role = $lif->child_get_string("role");
+    my $role = $lif->child_get_string( "role" );
 
-    if($role eq "cluster"){
+    if ($role eq "cluster") {
 
-        my $link = $lif->child_get_string("link-status");
-        my $name = $lif->child_get_string("port");
-        my $node = $lif->child_get_string("node");
+        my $link = $lif->child_get_string( "link-status" );
+        my $name = $lif->child_get_string( "port" );
+        my $node = $lif->child_get_string( "node" );
 
-        if($link ne "up"){
-            push(@failed_ports, "$node:$name");
+        if ($link ne "up") {
+            push( @failed_ports, "$node:$name" );
         }
     }
 }
 
-my $node_api = new NaElement('cluster-node-get-iter');
-my $node_output =$s->invoke_elem($node_api);
+my $node_api = new NaElement( 'cluster-node-get-iter' );
+my $node_output = $s->invoke_elem( $node_api );
 
 if ($node_output->results_errno != 0) {
     my $r = $node_output->results_reason();
@@ -79,21 +79,21 @@ if ($node_output->results_errno != 0) {
     exit 3;
 }
 
-my $nodes = $node_output->child_get("attributes-list");
+my $nodes = $node_output->child_get( "attributes-list" );
 my @node_result = $nodes->children_get();
-my $cf_api = new NaElement('cf-status');
+my $cf_api = new NaElement( 'cf-status' );
 
 my %failed_ics;
 
-foreach my $node (@node_result){
-    my $health = $node->child_get_string("is-node-healthy");
+foreach my $node (@node_result) {
+    my $health = $node->child_get_string( "is-node-healthy" );
 
-    if($health eq "true"){
+    if ($health eq "true") {
 
-        my $node_name = $node->child_get_string("node-name");
-        my $cf_api = new NaElement('cf-status');
-        $cf_api->child_add_string('node', $node_name);
-        my $cf_output = $s->invoke_elem($cf_api);
+        my $node_name = $node->child_get_string( "node-name" );
+        my $cf_api = new NaElement( 'cf-status' );
+        $cf_api->child_add_string( 'node', $node_name );
+        my $cf_output = $s->invoke_elem( $cf_api );
 
         if ($cf_output->results_errno != 0) {
             my $r = $cf_output->results_reason();
@@ -101,10 +101,10 @@ foreach my $node (@node_result){
             exit 3;
         }
 
-        my $link_status = $cf_output->child_get_string("interconnect-links");
-        $link_status = (split(/[()]/, $link_status))[1];
+        my $link_status = $cf_output->child_get_string( "interconnect-links" );
+        $link_status = (split( /[()]/, $link_status ))[1];
 
-        if(grep(/down/, $link_status)){
+        if (grep(/down/, $link_status)) {
             $failed_ics{$node_name} = $link_status;
         }
     }
@@ -113,12 +113,12 @@ foreach my $node (@node_result){
 my $failed_count = @failed_ports;
 my $ics_count = %failed_ics;
 
-if(($failed_count != 0) || ( $ics_count != 0)){
+if (($failed_count != 0) || ( $ics_count != 0)) {
     print "CRITICAL:";
-    foreach (@failed_ports){
+    foreach (@failed_ports) {
         print "$_ down, ";
     }
-    foreach (keys %failed_ics){
+    foreach (keys %failed_ics) {
         print $failed_ics{$_};
     }
     exit 2;
@@ -150,7 +150,7 @@ Checks if all HA-Interconnects and Cluster Links are up
 
 =item --hostname FQDN
 
-The Hostname of the NetApp to monitor
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item --username USERNAME
 

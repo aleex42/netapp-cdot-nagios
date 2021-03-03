@@ -10,6 +10,8 @@
 # did not receive this file, see http://www.gnu.org/licenses/gpl.txt.
 # --
 
+use Data::Dumper;
+
 use 5.10.0;
 use strict;
 use warnings;
@@ -24,69 +26,132 @@ GetOptions(
     'username=s' => \my $Username,
     'password=s' => \my $Password,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
-) or Error("check_cdot_aggr: Error in command line arguments\n");
+) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
-    print "$0: " . $_[0] . "\n";
+    print "$0: ".$_[0]."\n";
     exit 2;
 }
-Error('Option --hostname needed!') unless $Hostname;
-Error('Option --username needed!') unless $Username;
-Error('Option --password needed!') unless $Password;
+Error( 'Option --hostname needed!' ) unless $Hostname;
+Error( 'Option --username needed!' ) unless $Username;
+Error( 'Option --password needed!' ) unless $Password;
+
+my $must_paths;
 
 my $s = NaServer->new( $Hostname, 1, 3 );
-$s->set_transport_type("HTTPS");
-$s->set_style("LOGIN");
+$s->set_transport_type( "HTTPS" );
+$s->set_style( "LOGIN" );
 $s->set_admin_user( $Username, $Password );
 
-my $iterator = NaElement->new("storage-disk-get-iter");
-my $tag_elem = NaElement->new("tag");
-$iterator->child_add($tag_elem);
+# MCC check
+my $mcc_iterator = NaElement->new( "metrocluster-get" );
+my $mcc_response = $s->invoke_elem( $mcc_iterator );
+
+if($mcc_response->results_status ne "passed"){
+    print "ERROR: " . $mcc_response->results_reason . "\n";
+    exit 2;
+}
+
+my $mcc = $mcc_response->child_get( "attributes" );
+my $mcc_info = $mcc->child_get( "metrocluster-info" );
+my $config_state = $mcc_info->child_get_string( "local-configuration-state" );
+
+if($config_state eq "configured") {
+
+    my $type = $mcc_info->child_get_string( "configuration-type" );
+
+    if($type eq "stretch") {
+        $must_paths = 2;
+    } elsif($type eq "fabric") {
+        $must_paths = 8;
+    } else {
+        $must_paths = 4;
+    }
+} else {
+    $must_paths = 4;
+}
+
+my $shelf_iterator = NaElement->new("storage-shelf-info-get-iter");
+$shelf_iterator->child_add_string("max-records", "1000");
+my $shelf_response = $s->invoke_elem( $shelf_iterator );
+my $shelfs = $shelf_response->child_get("attributes-list");
+
+my @result = $shelfs->children_get();
+
+my %shelfs;
+
+foreach my $shelf (@result) {
+
+    my $type = $shelf->child_get_string("module-type");
+    my $stack = $shelf->child_get_string("stack-id");
+    my $shelf_id = $shelf->child_get_string("shelf-id");
+    
+    my $shelf_name = "$stack.$shelf_id";
+
+    $shelfs{$shelf_name} = $type;
+
+}
+
+my $iterator = NaElement->new( "storage-disk-get-iter" );
+my $tag_elem = NaElement->new( "tag" );
+$iterator->child_add( $tag_elem );
 
 my $next = "";
 my @failed_disks;
 
-while(defined($next)){
-    unless($next eq ""){
-        $tag_elem->set_content($next);    
+while(defined( $next )){
+    unless ($next eq "") {
+        $tag_elem->set_content( $next );
     }
 
-    $iterator->child_add_string("max-records", 100);
-    my $output = $s->invoke_elem($iterator);
+    $iterator->child_add_string( "max-records", 100 );
+    my $output = $s->invoke_elem( $iterator );
 
-	if ($output->results_errno != 0) {
-	    my $r = $output->results_reason();
-	    print "UNKNOWN: $r\n";
-	    exit 3;
-	}
-	
-	my $heads = $output->child_get("attributes-list");
-	my @result = $heads->children_get();
+    if ($output->results_errno != 0) {
+        my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
+    }
 
-	foreach my $disk (@result){
-	
-	    my $paths = $disk->child_get("disk-paths");
-	    my $path_count = $paths->children_get("disk-path-info");
-	    my $disk_name = $disk->child_get_string("disk-name");
-        my $path_info = $paths->child_get("disk-path-info");
+    unless($output->child_get_int( "num-records" ) eq "0") {
 
-        foreach my $path ($path_info){
+        my $heads = $output->child_get( "attributes-list" );
+        my @result = $heads->children_get();
 
-            my $disk_path_name = $path->child_get_string("disk-name");
-            my @split = split(/:/,$disk_path_name);
+        foreach my $disk (@result) {
 
-            if((@split eq 2) && ($path_count ne 4)){
-                push @failed_disks, $disk_name;
-            } elsif((@split eq 3) && ($path_count ne 8)){
+            my $inventory = $disk->child_get("disk-inventory-info");
+            my $paths = $disk->child_get( "disk-paths" );
+            my $path_count = $paths->children_get( "disk-path-info" );
+            my $disk_name = $disk->child_get_string( "disk-name" );
+            my $path_info = $paths->child_get( "disk-path-info" );
+
+            my $shelf = $inventory->child_get_string("shelf");
+            my $stack_id = $inventory->child_get_string("stack-id");
+
+            my $iom_type = $shelfs{"$stack_id.$shelf"};
+
+            my $new_must_paths;
+
+            # Internal disks i.e. A700s have 8 paths, A800 (psm3e) have 2 paths
+            if($iom_type eq "iom12f"){
+                $new_must_paths = "8";
+            } elsif ($iom_type eq "psm3e"){
+                $new_must_paths = "2";
+            } else {
+                $new_must_paths = $must_paths;
+            }
+
+            unless($path_count eq $new_must_paths){
                 push @failed_disks, $disk_name;
             }
         }
-	}
-	$next = $output->child_get_string("next-tag");
+    }
+    $next = $output->child_get_string( "next-tag" );
 }
 
 if (@failed_disks) {
-    print 'CRITICAL: disk(s) not multipath: ' . join( ', ', @failed_disks ) . "\n";
+    print 'CRITICAL: disk(s) not multipath: '.join( ', ', @failed_disks )."\n";
     exit 2;
 } else {
     print "OK: All disks multipath\n";
@@ -116,7 +181,7 @@ Checks if all Disks are multipathed (4 paths)
 
 =item --hostname FQDN
 
-The Hostname of the NetApp to monitor
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
 
 =item --username USERNAME
 
