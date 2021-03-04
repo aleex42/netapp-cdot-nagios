@@ -91,68 +91,73 @@ while(defined($next)){
     last if ($output->child_get_string("num-records") == 0 );
 
     if ($output->results_errno != 0) {
-	my $r = $output->results_reason();
-	print "UNKNOWN: $r\n";
-	exit 3;
+            my $r = $output->results_reason();
+        print "UNKNOWN: $r\n";
+        exit 3;
     }
 
     foreach my $getQuota ( $output->child_get("attributes-list")->children_get() ) {
-	# Disk limit is in KB
-	my $diskLimit = $getQuota->child_get_string('disk-limit');
-	
-    next if ($diskLimit eq "-" or $diskLimit == 0 );
-	
-    # Also in KB
-    $diskLimit *= 1024;
-	my $diskUsed = $getQuota->child_get_string('disk-used') * 1024;
-	my $fileLimit = $getQuota->child_get_string('file-limit');
-	my $filesUsed = $getQuota->child_get_string('files-used');
-	my $volume = $getQuota->child_get_string('volume');
-	my $type = $getQuota->child_get_string('quota-type');
-	my $target;
-	if ($type eq "user") {
-	    my $qUsers = $getQuota->child_get('quota-users');
-	    next unless ($qUsers);
-	    my $qUser= $qUsers->child_get('quota-user');
-	    next unless ($qUser);
-	    my $quotaUser = $qUser->child_get_string('quota-user-name');
-	    printf("Found quota for %s on %s\n", $quotaUser, $volume) if ($verbose);
-	    $target = sprintf("%s/%s", $volume, $quotaUser);
-	} else {
-	    $target = $getQuota->child_get_string('quota-target');
-	}
-	printf ("Quota %s: %s %s %s %s\n", $target, $diskLimit, $diskUsed, $fileLimit, $filesUsed) if ($verbose);
-	my $diskPercent=($diskUsed/$diskLimit*100);
 
-	# Generate pretty-printed scaled numbers
-	my $msg = sprintf ("Quota %s is %d%% full (used %s of %s)",
-	    $target, $diskPercent, humanScale($diskUsed), humanScale($diskLimit) );
-	if ($diskPercent >= $SizeCritical) {
-	    push (@crit_msg, $msg);
-	} elsif ($diskPercent >= $SizeWarning) {
-	    push (@warn_msg, $msg);
-	} else {
-	    push (@ok_msg, $msg);
-	}
-	if ($fileLimit ne "-" ) {
-	    # Check files limit as well as space
-	}
+        # Disk limit is in KB
+        my $diskLimit = $getQuota->child_get_string('disk-limit');
 
-	$perfdata{$target}{'byte_used'}=$diskUsed;
-	$perfdata{$target}{'byte_total'}=$diskLimit;
-	$perfdata{$target}{'files_used'}=$filesUsed;
-	$perfdata{$target}{'file_limit'}=$fileLimit;
+        next if ($diskLimit eq "-" or $diskLimit == 0 );
+
+        # Also in KB
+        $diskLimit *= 1024;
+        my $diskUsed = $getQuota->child_get_string('disk-used') * 1024;
+        my $fileLimit = $getQuota->child_get_string('file-limit');
+        my $filesUsed = $getQuota->child_get_string('files-used');
+        my $volume = $getQuota->child_get_string('volume');
+        my $type = $getQuota->child_get_string('quota-type');
+        my $target;
+        if ($type eq "user") {
+            my $qUsers = $getQuota->child_get('quota-users');
+            next unless ($qUsers);
+            my $qUser= $qUsers->child_get('quota-user');
+            next unless ($qUser);
+            my $quotaUser = $qUser->child_get_string('quota-user-name');
+            printf("Found quota for %s on %s\n", $quotaUser, $volume) if ($verbose);
+            $target = sprintf("%s/%s", $volume, $quotaUser);
+        } else {
+            $target = $getQuota->child_get_string('quota-target');
+        }
+        printf ("Quota %s: %s %s %s %s\n", $target, $diskLimit, $diskUsed, $fileLimit, $filesUsed) if ($verbose);
+        my $diskPercent=($diskUsed/$diskLimit*100);
+
+        # Generate pretty-printed scaled numbers
+        my $msg = sprintf ("Quota %s is %d%% full (used %s of %s)",
+            $target, $diskPercent, humanScale($diskUsed), humanScale($diskLimit) );
+        if ($diskPercent >= $SizeCritical) {
+            push (@crit_msg, $msg);
+        } elsif ($diskPercent >= $SizeWarning) {
+            push (@warn_msg, $msg);
+        } else {
+            push (@ok_msg, $msg);
+        }
+        if ($fileLimit ne "-" ) {
+            # Check files limit as well as space
+        }
+
+        if ($perf) {
+            $perfdata{$target}{'byte_used'}=$diskUsed;
+            $perfdata{$target}{'byte_total'}=$diskLimit;
+            $perfdata{$target}{'files_used'}=$filesUsed;
+            $perfdata{$target}{'file_limit'}=$fileLimit;
+        }
     }
     $next = $output->child_get_string("next-tag");
 }
 
 # Build perf data string for output
 my $perfdatastr="";
-foreach my $vol ( keys(%perfdata) ) {
-    # DS[1] - Data space used
-    $perfdatastr.=sprintf(" %s_space_used=%dB;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
-	$SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
-	0, $perfdata{$vol}{'byte_total'} );
+if ($perf) {
+    foreach my $vol ( keys(%perfdata) ) {
+        # DS[1] - Data space used
+        $perfdatastr.=sprintf(" %s_space_used=%dB;%d;%d;%d;%d", $vol, $perfdata{$vol}{'byte_used'},
+            $SizeWarning*$perfdata{$vol}{'byte_total'}/100, $SizeCritical*$perfdata{$vol}{'byte_total'}/100,
+            0, $perfdata{$vol}{'byte_total'} );
+    }
 }
 
 if(scalar(@crit_msg) ){
@@ -166,7 +171,7 @@ if(scalar(@crit_msg) ){
         print "\nOK: ";
         print join (", ", @ok_msg);
     }
-    print "|$perfdatastr\n";
+    print "|$perfdatastr\n" if ($perf);
     exit 2;
 } elsif(scalar(@warn_msg) ){
     print "WARNING: ";
@@ -175,12 +180,12 @@ if(scalar(@crit_msg) ){
         print "\nOK: ";
         print join (", ", @ok_msg);
     }
-    print "|$perfdatastr\n";
+    print "|$perfdatastr\n" if ($perf);
     exit 1;
 } elsif(scalar(@ok_msg) ){
     print "OK: ";
     print join (", ", @ok_msg);
-    print "|$perfdatastr\n";
+    print "|$perfdatastr\n" if ($perf);
     exit 0;
 } else {
     print "WARNING: no online volume found\n";
@@ -192,12 +197,12 @@ sub humanScale {
     my $unit='B';
     my @units = qw( KB MB GB TB PB EB );
     while ($metric > 1100) {
-	if (scalar(@units)<1) {
-	    # Hit our max scaling factor - bail out
-	    last;
-	}
+        if (scalar(@units)<1) {
+            # Hit our max scaling factor - bail out
+            last;
+        }
         $unit=shift(@units);
-	$metric=$metric/1024;
+        $metric=$metric/1024;
     }
     return sprintf("%.1f %s", $metric, $unit);
 }
@@ -212,10 +217,11 @@ check_cdot_volume - Check Volume Usage
 
 =head1 SYNOPSIS
 
-check_cdot_quota.pl -H HOSTNAME -u USERNAME -p PASSWORD \
-           -w PERCENT_WARNING -c PERCENT_CRITICAL \
-	   --files-warning PERCENT_WARNING \
-           --files-critical PERCENT_CRITICAL [-V VOLUME] [-P]
+check_cdot_quota.pl -H HOSTNAME -u USERNAME -p PASSWORD
+           -w PERCENT_WARNING -c PERCENT_CRITICAL
+           [--files-warning PERCENT_WARNING]
+           [--files-critical PERCENT_CRITICAL]
+           [-t quota_target_path] [-V VOLUME] [-P]
 
 =head1 DESCRIPTION
 
