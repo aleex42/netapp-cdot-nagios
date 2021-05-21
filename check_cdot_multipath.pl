@@ -142,7 +142,7 @@ while(defined( $next )){
                 $new_must_paths = $must_paths;
             }
 
-            unless($path_count eq $new_must_paths){
+            unless($path_count ge $new_must_paths){
                 push @failed_disks, $disk_name;
             }
         }
