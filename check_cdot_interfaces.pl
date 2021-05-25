@@ -22,10 +22,11 @@ use Getopt::Long;
 use Data::Dumper;
 
 GetOptions(
-    'hostname=s' => \my $Hostname,
-    'username=s' => \my $Username,
-    'password=s' => \my $Password,
-    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'hostname=s'  => \my $Hostname,
+    'username=s'  => \my $Username,
+    'password=s'  => \my $Password,
+    'crc-count:i' => \(my $CrcMaxCount = 10),
+    'help|?'      => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
@@ -228,7 +229,7 @@ if($nics) {
                         my $key = $counter->child_get_string( "name" );
                         my $value = $counter->child_get_string( "value" );
 
-                        if($value > 10) {
+                        if($value > $CrcMaxCount) {
                             push(@nic_errors, $nic_name);
                         }
                     }
@@ -325,3 +326,4 @@ to see this Documentation
 =head1 AUTHORS
 
  Alexander Krogloth <git at krogloth.de>
+
