@@ -323,27 +323,27 @@ while(defined($next)) {
 				my $crit_msg = "$vol_name (";
 
 				if ($percent >= $SizeCritical) {
-					$crit_msg .= "Size: $space_used/$space_total, $percent%[>$SizeCritical%], ";
+					$crit_msg .= "Size: $space_used/$space_total, $percent%[>=$SizeCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_c'} = 1;
 				} elsif ($percent >= $SizeWarning) {
-					$crit_msg .= "Size: $space_used/$space_total, $percent%[>$SizeWarning%], ";
+					$crit_msg .= "Size: $space_used/$space_total, $percent%[>=$SizeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_w'} = 1;
 				}
 
 				if ($inode_percent >= $InodeCritical) {
-					$crit_msg .= "Inodes: $inode_percent%[>$InodeCritical%], ";
+					$crit_msg .= "Inodes: $inode_percent%[>=$InodeCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_c'} = 1;
 				} elsif ($inode_percent >= $InodeWarning) {
-					$crit_msg .= "Inodes: $inode_percent%[>$InodeWarning%], ";
+					$crit_msg .= "Inodes: $inode_percent%[>=$InodeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_w'} = 1;
 				}
 
 				if ($snapusedpct >= $SnapCritical) {
 
-					$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapCritical%], ";
+					$crit_msg .= "Snapreserve: $snapusedpct%[>=$SnapCritical%], ";
 					$h_warn_crit_info->{$vol_name}->{'snap_percent_c'} = 1;
 				} elsif ($snapusedpct >= $SnapWarning) {
-					$crit_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
+					$crit_msg .= "Snapreserve: $snapusedpct%[>=$SnapWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
 				}
 
@@ -358,15 +358,15 @@ while(defined($next)) {
 				my $warn_msg = "$vol_name (";
 
 				if ($percent >= $SizeWarning) {
-					$warn_msg .= "Size: $space_used/$space_total, $percent%[>$SizeWarning%], ";
+					$warn_msg .= "Size: $space_used/$space_total, $percent%[>=$SizeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'space_percent_w'} = 1;
 				}
 				if ($inode_percent >= $InodeWarning) {
-					$warn_msg .= "Inodes: $inode_percent%[>$InodeWarning%], ";
+					$warn_msg .= "Inodes: $inode_percent%[>=$InodeWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'inode_percent_w'} = 1;
 				}
 				if ($snapusedpct >= $SnapWarning) {
-					$warn_msg .= "Snapreserve: $snapusedpct%[>$SnapWarning%], ";
+					$warn_msg .= "Snapreserve: $snapusedpct%[>=$SnapWarning%], ";
 					$h_warn_crit_info->{$vol_name}->{'snap_percent_w'} = 1;
 				}
 				chop($warn_msg); chop($warn_msg); $warn_msg .= ")";				
