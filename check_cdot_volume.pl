@@ -36,6 +36,7 @@ GetOptions(
     'snap-ignore=s'         => \my $SnapIgnore,
     'P|perf'                => \my $perf,
     'V|volume=s'            => \my $Volume,
+    'volumelist=s'	    => \my @volumelistarray,
     'vserver=s'             => \my $Vserver,
     'exclude=s'	            =>	\my @excludelistarray,
     'regexp'                => \my $regexp,
@@ -48,6 +49,15 @@ GetOptions(
 my %Excludelist;
 @Excludelist{@excludelistarray}=();
 my $excludeliststr = join "|", @excludelistarray;
+
+#my %Volumelist;
+#@Volumelist{@volumelistarray}=();
+#my $volumeliststr = join "|", @volumelistarray;
+
+use Data::Dumper;
+
+#print Dumper(@volumelistarray);
+#die;
 
 sub Error {
     print "$0: ".$_[0]."\n";
@@ -220,6 +230,11 @@ my $xi6 = new NaElement( "volume-id-attributes" );
 $xi5->child_add( $xi6 );
 if($Volume){
     $xi6->child_add_string( "name", $Volume );
+}
+if(@volumelistarray){
+	foreach my $vol (@volumelistarray){
+		$xi6->child_add_string( "name", $vol );
+	}
 }
 if($Vserver){
     $xi6->child_add_string( "owning-vserver-name", $Vserver );
@@ -479,6 +494,7 @@ check_cdot_volume.pl -H HOSTNAME -u USERNAME -p PASSWORD \
            --inode-critical PERCENT_CRITICAL \
            [--perfdatadir DIR] [--perfdataservicedesc SERVICE-DESC] \
 		   [--hostdisplay HOSTDISPLAY] [--vserver VSERVER-NAME] \
+	   [--volumelist vol1,vol2 ] \
 		   [--snap-ignore] [-V VOLUME] [-P]
 
 =head1 DESCRIPTION
@@ -529,6 +545,10 @@ The Critical threshold for snapshot space usage. Defaults to 90%.
 =item -V | --volume VOLUME
 
 Optional: The name of the Volume to check
+
+=item --volumelist VOL1,VOL2
+
+Optional: list of volumes to check (checks ONLY! these volumes)
 
 =item --vserver VSERVER-NAME
 
