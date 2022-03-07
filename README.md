@@ -38,17 +38,10 @@ Currently there are the following checks:
 * check_cdot_volume.pl: Volume Space and I-Node Usage (also supports performance data)
 * check_cisco_nexus_ports.pl: Cisco Nexus Cluster-Switch Port Status
 
-# Examples
-
-For some examples have a look at my wiki: 
-http://wiki.krogloth.de/index.php/NetApp_C-Mode/Monitoring
-
-
 # Contact / Author
 
 Alexander Krogloth
 <git at krogloth.de>
-<alexander.krogloth at noris.de> for the noris network AG.
 
 See also the list of [contributors](https://github.com/aleex42/netapp-cdot-nagios/blob/master/CONTRIBUTORS.md) who participated in this project.
 
