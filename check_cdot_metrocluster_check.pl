@@ -63,6 +63,7 @@ if ($output->results_errno != 0) {
 }
 
 my $status = $output->child_get("attributes-list");
+my $longoutput = "";
 
 my @errors;
 my @components = $status->children_get();
@@ -72,26 +73,26 @@ foreach my $component (@components){
     my $name = $component->child_get_string("component");
     my $result = $component->child_get_string("result");
 
-print $name . "\n";
-   
-    unless(grep/$name/, @excludelistarray){
-
+	unless(grep/$name/, @excludelistarray){
+		$longoutput .= $name . " : " . $result . "\n";
         unless($result eq "ok"){
             my $info = $component->child_get_string("additional-info");
 
             push(@errors, { component => $name, result => $result, error => $info });
         }
-    }
+    } else {
+		$longoutput .= "(excluded) ". $name . " : " . $result . "\n";
+	}
 }
 
 if (@errors) {
     print "CRITICAL: ";
     foreach my $error (@errors){
-        print "$error->{component}: $error->{result}\n";
+        print "$error->{component}: $error->{result}\n|$longoutput";
     }
     exit 2;
 } else {
-    print "OK: Metrocluster state ok\n";
+    print "OK: Metrocluster state ok\n|$longoutput";
     exit 0;
 }
 
