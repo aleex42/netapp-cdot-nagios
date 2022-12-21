@@ -12,7 +12,7 @@
 
 use Data::Dumper;
 
-use 5.10.0;
+use 5.11.0;
 use strict;
 use warnings;
 
@@ -21,10 +21,13 @@ use NaServer;
 use NaElement;
 use Getopt::Long;
 
+my @skipped_container_types;
+
 GetOptions(
     'hostname=s' => \my $Hostname,
     'username=s' => \my $Username,
     'password=s' => \my $Password,
+    'skip-container-type=s' => \@skipped_container_types,
     'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error( "$0: Error in command line arguments\n" );
 
@@ -126,10 +129,17 @@ while(defined( $next )){
             my $disk_name = $disk->child_get_string( "disk-name" );
             my $path_info = $paths->child_get( "disk-path-info" );
 
-            my $shelf = $inventory->child_get_string("shelf");
-            my $stack_id = $inventory->child_get_string("stack-id");
+            # skip disks which are in a certain container type
+            #
+            my $disk_raid_info = $disk->child_get( "disk-raid-info");
+            my $container_type = $disk_raid_info->child_get_string("container-type") // 'unknown';
+            next if $container_type ~~ @skipped_container_types;
 
-            my $iom_type = $shelfs{"$stack_id.$shelf"};
+            #
+            my $shelf = $inventory->child_get_string("shelf") // '0';
+            my $stack_id = $inventory->child_get_string("stack-id") // '0';
+
+            my $iom_type = $shelfs{"$stack_id.$shelf"} // 'unknown';
 
             my $new_must_paths;
 
@@ -190,6 +200,10 @@ The Login Username of the NetApp to monitor
 =item --password PASSWORD
 
 The Login Password of the NetApp to monitor
+
+=item --skip-container-type CONTAINER_TYPE
+
+A container type (can be specified multiple times) which is skipped on the multipath check.
 
 =item -help
 
