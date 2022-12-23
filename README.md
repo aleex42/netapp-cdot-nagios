@@ -6,6 +6,11 @@ Scripts for monitoring NetApp cDOT Clusters via NetApp Manageability SDK (Perl)
 
 For older 7-Mode systems use my [7-Mode Scripts](https://github.com/aleex42/netapp-7mode-nagios)
 
+'''Attention:''' ZAPI will only work with ONTAP 9.12.1 or earlier.
+Starting with 9.13.1 there will be only support for REST-API. REST-API was introduced with ONTAP 9.8.
+
+New check scripts for REST-API (work in progress): https://github.com/aleex42/netapp-monitoring-rest
+
 ## Plugins
 
 Currently there are the following checks:
