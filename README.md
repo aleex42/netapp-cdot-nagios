@@ -12,7 +12,7 @@ For older 7-Mode systems use my [7-Mode Scripts](https://github.com/aleex42/neta
 
 Starting with 9.13.1 there will be only support for REST-API. REST-API was introduced with ONTAP 9.8.
 
-New check scripts for REST-API (work in progress): https://github.com/aleex42/netapp-monitoring-rest
+New check scripts for REST-API (work in progress): https://github.com/aleex42/netapp-ontap-monitoring-rest
 
 ## Plugins
 
