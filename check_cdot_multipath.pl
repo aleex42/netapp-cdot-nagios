@@ -67,6 +67,8 @@ if($config_state eq "configured") {
         $must_paths = 2;
     } elsif($type eq "fabric") {
         $must_paths = 8;
+    } elsif($type eq "ip_fabric") {
+        $must_paths = 8;
     } else {
         $must_paths = 4;
     }
