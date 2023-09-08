@@ -23,8 +23,8 @@ $def[1] .= "CDEF:datausedpct=dataused,datatotal,/,100,* ";
 $def[1] .= "CDEF:datausedwoover=dataused,snapover,- ";
 $def[1] .= "CDEF:datafree=datatotal,datausedwoover,-,snapover,- ";
 
-$def[1] .= "CDEF:warn=dataused,0,*,$WARN[1],+ ";
-$def[1] .= "CDEF:crit=dataused,0,*,$CRIT[1],+ ";
+if ($WARN[1] != "") $def[1] .= "CDEF:warn=dataused,0,*,$WARN[1],+ ";
+if ($CRIT[1] != "") $def[1] .= "CDEF:crit=dataused,0,*,$CRIT[1],+ ";
 
 $def[1] .= "AREA:datausedwoover#aaaaaa:\"Data\: Used space\" ";
 $def[1] .= "GPRINT:datausedwoover:LAST:\"%6.2lf%S\\n\" ";
@@ -39,7 +39,7 @@ $def[1] .= "GPRINT:snapwoover:LAST:\"%6.2lf%S\\n\" ";
 
 $def[1] .= "LINE1:datatotal#000000 ";
 
-$def[1] .= "LINE2:datafree#ffffff:\"Available space \": ";
+$def[1] .= "LINE2:datafree#ffffff:\"Available space \" ";
 $def[1] .= "GPRINT:datafree:LAST:\"%6.2lf%S\\n\" ";
 
 $def[1] .= "COMMENT:\" \\n\" ";
