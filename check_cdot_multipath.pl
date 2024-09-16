@@ -145,10 +145,12 @@ while(defined( $next )){
 
             my $new_must_paths;
 
-            # Internal disks i.e. A700s have 8 paths, A800 (psm3e) have 2 paths
+            # Internal disks i.e. A700s have 8 paths, A800 (psm3e) and A/C250 (psm8e) have two paths
             if($iom_type eq "iom12f"){
                 $new_must_paths = "8";
             } elsif ($iom_type eq "psm3e"){
+                $new_must_paths = "2";
+            } elsif ($iom_type eq "psm8e"){
                 $new_must_paths = "2";
             } else {
                 $new_must_paths = $must_paths;
