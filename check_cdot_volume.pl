@@ -402,7 +402,7 @@ while(defined($next)) {
 }
 
 # Build perf data string for output
-my $perfdataglobalstr=sprintf("Volume_count::check_cdot_volume_count::count=%d;;;0;;", $volume_count);
+my $perfdataglobalstr=sprintf("Volume_count::check_cdot_volume_count::count=%d;;;0;", $volume_count);
 my $perfdatavolstr="";
 foreach my $vol ( keys(%perfdata) ) {
     # DS[1] - Data space used
