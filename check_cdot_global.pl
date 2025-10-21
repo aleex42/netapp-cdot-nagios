@@ -18,6 +18,9 @@ use NaServer;
 use NaElement;
 use Getopt::Long qw(:config no_ignore_case);
 
+# ignore warning for experimental 'given'
+no if ($] >= 5.018), 'warnings' => 'experimental';
+
 GetOptions(
     'H|hostname=s' => \my $Hostname,
     'u|username=s' => \my $Username,
@@ -201,6 +204,12 @@ elsif ($Plugin eq "health") {
         exit 0;
     }
 }
+
+__END__
+
+=encoding utf8
+
+=head1 NAME
 
 # check_cdot_global.pl - Checks health status ( powersupplies, fans, ... )
 
