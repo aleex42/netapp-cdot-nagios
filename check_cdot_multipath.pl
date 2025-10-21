@@ -135,7 +135,7 @@ while(defined( $next )){
             #
             my $disk_raid_info = $disk->child_get( "disk-raid-info");
             my $container_type = $disk_raid_info->child_get_string("container-type") // 'unknown';
-            next if $container_type ~~ @skipped_container_types;
+            next if grep { $_ eq $container_type } @skipped_container_types;
 
             #
             my $shelf = $inventory->child_get_string("shelf") // '0';
