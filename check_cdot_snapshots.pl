@@ -27,7 +27,8 @@ GetOptions(
     'retentiondays=i'   => \my $retention_days,
     'volume=s'          => \my $volumename,
     'busy'              => \my $busy_check,
-    'exclude=s'         => \my @excludelistarray,
+    'exclude=s'         => \my @exclude_listarray,
+    'exclude-snapname=s' => \my @excludesnapname_listarray,
     'regexp'            => \my $regexp,
     'exitcritical'      => \my $exitcritical,
     'v|verbose'         => \my $verbose,
@@ -35,8 +36,12 @@ GetOptions(
 ) or Error("$0: Error in command line arguments\n");
 
 my %Excludelist;
-@Excludelist{@excludelistarray}=();
-my $excludeliststr = join "|", @excludelistarray;
+@Excludelist{@exclude_listarray}=();
+my $excludeliststr = join "|", @exclude_listarray;
+
+my %ExcludeSnapNameList;
+@ExcludeSnapNameList{@excludesnapname_listarray}=();
+my $excludeSnapNameStr = join "|", @excludesnapname_listarray;
 
 sub Error {
     print "$0: " . $_[0] . "\n";
@@ -129,17 +134,34 @@ while(defined($next)){
                 print "[DEBUG] volume: $vol_name,\t snapshot: $snap_name,\t busy_status: $busy_status,\t age: $age\n";
             }
 
+	    # Exclude Volumes
             if (exists $Excludelist{$vol_name}) {
                 push(@manually_excluded_snapshots,"$vol_name/$snap_name\n");
                 next;
             }
 
+	    # Exclude Volumes with Regex
             if ($regexp and $excludeliststr) {
                 if ($vol_name =~ m/$excludeliststr/) {
                     push(@manually_excluded_snapshots,"$vol_name/$snap_name\n");
                     next;
                 }
             }
+
+	    # Exclude Snapshot Names
+	    if (exists $ExcludeSnapNameList{$snap_name}){
+		push(@manually_excluded_snapshots,"$vol_name/$snap_name\n");
+	    	next;
+	    }
+	
+	    # Exclude Snapshot Names with Regex
+            if ($regexp and $excludeSnapNameStr) {
+                if ($snap_name =~ m/$excludeSnapNameStr/) {
+	            push(@manually_excluded_snapshots,"$vol_name/$snap_name\n");
+                    next;
+                }
+            }
+
 
             if($age >= $AgeOpt){
                 unless(grep(/$vol_name/, @snapmirrors)){
@@ -387,6 +409,7 @@ check_cdot_snapshots.pl --hostname HOSTNAME \
     --username USERNAME --password PASSWORD [--age AGE-SECONDS] \
     [--numbersnapshot NUMBER-ITEMS] [--retentiondays AGE-DAYS] \
     [--volume VOLUME-NAME] [--busy]
+    [--exclude-snapname SNAPSHOT-NAME]
     [--exclude VOLUME-NAME] [--regexp] [--verbose]
 
 =head1 DESCRIPTION
@@ -433,9 +456,13 @@ Check whether there are snapshot in busy state
 
 Optional: The name of a volume that has to be excluded from the checks (multiple exclude item for multiple volumes)
 
+=item --exclude-snapname
+
+Optional: The name of a snapshot that has to be excluded from the checks (multiple exclude item for multiple volumes)
+
 =item --regexp
 
-Optional: Enable regexp matching for the exclusion list
+Optional: Enable regexp matching for the exclusion list (both snapshot or volume)
 
 =item -v | --verbose
 
