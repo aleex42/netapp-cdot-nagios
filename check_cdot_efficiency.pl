@@ -26,7 +26,7 @@ GetOptions(
     'H|hostname=s' => \my $Hostname,
     'u|username=s' => \my $Username,
     'p|password=s' => \my $Password,
-    'h|help'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'h|help'       => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error("$0: Error in command line arguments\n");
 
 sub Error {
@@ -131,28 +131,52 @@ if(scalar(@crit_msg) ){
 }
 
 __END__
+
 =encoding utf8
+
 =head1 NAME
-check_cdot_effiency - Check Efficiency Settings
+
+check_cdot_efficiency - Efficiency settings
+
 =head1 SYNOPSIS
-check_cdot_efficiency.pl -H HOSTNAME -u USERNAME -p PASSWORD 
+
+check_cdot_efficiency.pl -H HOSTNAME -u USERNAME \
+           -p PASSWORD
+
 =head1 DESCRIPTION
-Checks the Volume Efficiency Settings
+
+Checks the volume efficiency settings
+
 =head1 OPTIONS
+
 =over 4
+
 =item -H | --hostname FQDN
-The Hostname of the NetApp to monitor
+
+The Hostname of the NetApp to monitor (Cluster or Node MGMT)
+
 =item -u | --username USERNAME
+
 The Login Username of the NetApp to monitor
+
 =item -p | --password PASSWORD
+
 The Login Password of the NetApp to monitor
+
 =item -help
+
 =item -?
+
 to see this Documentation
+
 =back
+
 =head1 EXIT CODE
+
 3 on Unknown Error
-2 if Critical Threshold has been reached
+2 if anything isn't configured correctly
 0 if everything is ok
+
 =head1 AUTHORS
+
  Alexander Krogloth <git at krogloth.de>
