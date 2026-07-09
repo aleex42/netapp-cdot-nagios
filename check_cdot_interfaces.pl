@@ -22,11 +22,10 @@ use Getopt::Long;
 use Data::Dumper;
 
 GetOptions(
-    'hostname=s'  => \my $Hostname,
-    'username=s'  => \my $Username,
-    'password=s'  => \my $Password,
-    'crc-count:i' => \(my $CrcMaxCount = 10),
-    'help|?'      => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
+    'hostname=s' => \my $Hostname,
+    'username=s' => \my $Username,
+    'password=s' => \my $Password,
+    'help|?'     => sub { exec perldoc => -F => $0 or die "Cannot execute perldoc: $!\n"; },
 ) or Error( "$0: Error in command line arguments\n" );
 
 sub Error {
@@ -77,8 +76,8 @@ foreach my $head (@result) {
 
         if ($ifgrp_output->results_errno != 0) {
           my $r = $ifgrp_output->results_reason();
-        	print "UNKNOWN: $r\n";
-        	exit 3;
+                print "UNKNOWN: $r\n";
+                exit 3;
         }
     }
 
@@ -131,17 +130,21 @@ while(defined( $next )){
     if($lifs) {
 
         my @lif_result = $lifs->children_get();
-        
+
         foreach my $lif (@lif_result) {
-  
+
             my $node = $lif->child_get_string( "node" );
             my $name = $lif->child_get_string( "port" );
             my $state = $lif->child_get_string( "link-status" );
             my $admin_speed = $lif->child_get_string( "administrative-speed" );
             my $operational_speed = $lif->child_get_string( "operational-speed" );
+            my $port_type = $lif->child_get_string( "port-type" );
+
+            next if $port_type eq "vip"; # skip bgp ports
+            next if $port_type eq "vlan"; # skip vlan ports
 
             if($state eq "up"){
-                unless(($name =~ m/^a0/) || ($name =~ m/^e0M/)){ 
+                unless(($name =~ m/^a0/) || ($name =~ m/^e0M/)){
 
                     if(($admin_speed ne "auto") && ($admin_speed ne $operational_speed)){
                         push( @{$failed_speed{$node}}, $name);
@@ -216,7 +219,7 @@ if($nics) {
             $nic_name =~ s/kernel://;
 
             my ($node, $nic) = split( /:/, $nic_name );
-    
+
             unless( grep( /$nic/, @{$failed_ports{$node}} )) {
 
                 my $counters = $nic_element->child_get( "counters" );
@@ -225,11 +228,11 @@ if($nics) {
                     my @counter_result = $counters->children_get();
 
                     foreach my $counter (@counter_result) {
-                    
+
                         my $key = $counter->child_get_string( "name" );
                         my $value = $counter->child_get_string( "value" );
 
-                        if($value > $CrcMaxCount) {
+                        if($value > 10) {
                             push(@nic_errors, $nic_name);
                         }
                     }
@@ -326,4 +329,3 @@ to see this Documentation
 =head1 AUTHORS
 
  Alexander Krogloth <git at krogloth.de>
-
