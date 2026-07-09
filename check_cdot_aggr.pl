@@ -114,7 +114,7 @@ while(defined( $next )){
             next if exists $Excludelist{$aggr_name};
 
             if ($regexp and $excludeliststr) {
-                if ($aggr_name =~ m/.$excludeliststr/) {
+                if ($aggr_name =~ m/$excludeliststr/) {
                     next;
                 }
             }            
