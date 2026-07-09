@@ -2,7 +2,7 @@
 
 # nagios: -epn
 # --
-# check_cdot_volume - Check Volume Usage
+# check_cdot_lun - Check Volume Usage
 # Copyright (C) 2013 noris network AG, http://www.noris.net/
 # --
 # This software comes with ABSOLUTELY NO WARRANTY. For details, see
