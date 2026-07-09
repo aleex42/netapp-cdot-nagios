@@ -78,10 +78,11 @@ while(defined( $next )){
             foreach my $rg (@rgs) {
 
                 my $rg_reconstruct = $rg->child_get_string( "is-reconstructing" );
+		my $rg_reconstruct_percent = $rg->child_get_string( "reconstruction-percentage" );
 
                 if ($rg_reconstruct eq "true") {
                     unless (grep(/$aggr_name/, @failed_aggrs)) {
-                        push( @failed_aggrs, $aggr_name );
+                        push( @failed_aggrs, "$aggr_name: $rg_reconstruct_percent%" );
                     }
                 }
             }
