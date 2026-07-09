@@ -72,8 +72,7 @@ while(defined($next)){
         my $num_records = $snap_output->child_get_string("num-records");
 
         if($num_records eq 0){
-                print "OK - Nothing to check\n";
-                exit 0;
+		last;
         }
 	
         my @snapmirrors = $snap_output->child_get("attributes-list")->children_get();
@@ -110,6 +109,11 @@ while(defined($next)){
 
     $iterator->child_add_string("max-records", 100);
     my $output = $s->invoke_elem($iterator);
+
+    if($output->results_status ne "passed"){
+    	print "ERROR: " . $output->results_reason . "\n";
+    	exit 2;
+    }
 
     if ($output->results_errno != 0) {
         my $r = $output->results_reason();
