@@ -48,7 +48,7 @@ my %ifgrps;
 
 my $node_iterator = NaElement->new( "system-node-get-iter" );
 
-$node_iterator->child_add_string( "max-records", 10 );
+$node_iterator->child_add_string( "max-records", 24 );
 my $node_output = $s->invoke_elem( $node_iterator );
 
 if ($node_output->results_errno != 0) {
@@ -60,51 +60,10 @@ if ($node_output->results_errno != 0) {
 my $heads = $node_output->child_get( "attributes-list" );
 my @result = $heads->children_get();
 
-foreach my $head (@result) {
-    my $node_name = $head->child_get_string( "node" );
-
-    my $ifgrp_iterator = NaElement->new( "net-port-ifgrp-get" );
-
-    $ifgrp_iterator->child_add_string( "node", $node_name );
-    $ifgrp_iterator->child_add_string( "ifgrp-name", "a0a" );
-    my $ifgrp_output = $s->invoke_elem( $ifgrp_iterator );
-
-    if ($ifgrp_output->results_errno != 0) {
-        $ifgrp_iterator = NaElement->new( "net-port-ifgrp-get" );
-        $ifgrp_iterator->child_add_string( "node", $node_name );
-        $ifgrp_iterator->child_add_string( "ifgrp-name", "a0b" );
-        $ifgrp_output = $s->invoke_elem( $ifgrp_iterator );
-
-        if ($ifgrp_output->results_errno != 0) {
-          my $r = $ifgrp_output->results_reason();
-                print "UNKNOWN: $r\n";
-                exit 3;
-        }
-    }
-
-    my $ifgrps = $ifgrp_output->child_get( "attributes" );
-    my $ifgrp_infos = $ifgrps->child_get( "net-ifgrp-info" );
-
-    my $ifgrp_name = $ifgrp_infos->child_get_string( "ifgrp-name" );
-
-    my $ports_foo = $ifgrp_infos->child_get( "ports" );
-    my @ports = $ports_foo->children_get();
-
-    my @ifgrp_ports;
-
-    foreach my $port (@ports) {
-        my %foo = %{$port};
-        push( @ifgrp_ports, $foo{content} );
-    }
-
-    $ifgrps{$node_name} = \@ifgrp_ports;
-}
-
 my %failed_ports;
 
 my %failed_speed;
 my $failed_speed_count = 0;
-
 
 my $iterator = NaElement->new( "net-port-get-iter" );
 my $tag_elem = NaElement->new( "tag" );
@@ -113,55 +72,58 @@ $iterator->child_add( $tag_elem );
 my $next = "";
 
 while(defined( $next )){
-    unless ($next eq "") {
-        $tag_elem->set_content( $next );
-    }
+	unless ($next eq "") {
+		$tag_elem->set_content( $next );
+	}
 
-    $iterator->child_add_string( "max-records", 100 );
-    my $lif_output = $s->invoke_elem( $iterator );
+	$iterator->child_add_string( "max-records", 100 );
+	my $lif_output = $s->invoke_elem( $iterator );
 
-    if ($lif_output->results_errno != 0) {
-        my $r = $lif_output->results_reason();
-        print "UNKNOWN: $r\n";
-        exit 3;
-    }
+	if ($lif_output->results_errno != 0) {
+		my $r = $lif_output->results_reason();
+		print "UNKNOWN: $r\n";
+		exit 3;
+	}
 
-    my $lifs = $lif_output->child_get( "attributes-list" );
+	my $lifs = $lif_output->child_get( "attributes-list" );
 
-    if($lifs) {
+	if($lifs) {
 
-        my @lif_result = $lifs->children_get();
+		my @lif_result = $lifs->children_get();
 
-        foreach my $lif (@lif_result) {
+		foreach my $lif (@lif_result) {
 
-            my $node = $lif->child_get_string( "node" );
-            my $name = $lif->child_get_string( "port" );
-            my $state = $lif->child_get_string( "link-status" );
-            my $admin_speed = $lif->child_get_string( "administrative-speed" );
-            my $operational_speed = $lif->child_get_string( "operational-speed" );
-            my $port_type = $lif->child_get_string( "port-type" );
+			my $ifgrp_port = $lif->child_get_string("ifgrp-port");
 
-            next if $port_type eq "vip"; # skip bgp ports
-            next if $port_type eq "vlan"; # skip vlan ports
+			my $node = $lif->child_get_string( "node" );
+			my $name = $lif->child_get_string( "port" );
+			my $state = $lif->child_get_string( "link-status" );
+			my $admin_speed = $lif->child_get_string( "administrative-speed" );
+			my $operational_speed = $lif->child_get_string( "operational-speed" );
+			my $port_type = $lif->child_get_string( "port-type" );
 
-            if($state eq "up"){
-                unless(($name =~ m/^a0/) || ($name =~ m/^e0M/)){
+			next if $port_type eq "vip"; # skip bgp ports
+			next if $port_type eq "vlan"; # skip vlan ports
 
-                    if(($admin_speed ne "auto") && ($admin_speed ne $operational_speed)){
-                        push( @{$failed_speed{$node}}, $name);
-                        $failed_speed_count++;
-                    }
-                }
+			if(($state eq "up") && ($port_type ne "if_group")){
 
-            }
+				unless($name =~ m/^e0M/){
 
-            if($state ne "up") {
-                push( @{$failed_ports{$node}}, $name);
-            }
-        }
-    }
+					if(($admin_speed ne "auto") && ($admin_speed ne $operational_speed)){
+						push( @{$failed_speed{$node}}, $name);
+						$failed_speed_count++;
+					}
+				}
 
-    $next = $lif_output->child_get_string( "next-tag" );
+				if($state ne "up") {
+					push( @{$failed_ports{$node}}, $name);
+				}
+			}
+
+		}
+
+		$next = $lif_output->child_get_string( "next-tag" );
+	}
 }
 
 foreach my $node (keys %failed_ports) {
