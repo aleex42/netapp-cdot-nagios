@@ -67,11 +67,17 @@ while(defined( $next )){
     foreach my $head (@result) {
         my $node_name = $head->child_get_string( "node" );
         my $uptime = $head->child_get_string("node-uptime");
-
-        if($uptime < "1800"){
-            print "CRITICAL: uptime $uptime on node $node_name less than 30 minutes\n";
-            exit 2;
-        }
+ 
+        if (!defined($uptime) || $uptime eq "") {
+            print "UNKNOWN: node-uptime not found for node $node_name\n";
+	        exit 3;
+	     }
+	 
+	     # Compare numerically, not as strings!
+	     if ($uptime < 1800) {
+	        print "CRITICAL: uptime $uptime seconds on node $node_name less than 30 minutes\n";
+		    exit 2;
+	    }
     }
     
     $next = $output->child_get_string( "next-tag" );
